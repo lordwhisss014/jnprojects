@@ -1,0 +1,75 @@
+To deploy EDB Postgres AI in OpenShift, you'll need to follow these steps:
+
+Prerequisites
+OpenShift cluster with admin access
+EDB Postgres Operator installed
+Access to EDB container registry
+
+
+Deployment Steps:
+Create a namespace for EDB Postgres AI:
+
+oc new-project edb-ai-namespace
+Apply the YAML configuration:
+
+oc apply -f edb-postgres-ai.yaml
+Verify the deployment:
+
+oc get pods -n edb-ai-namespace
+
+Important Notes:
+Registry Access: You need valid credentials for the EDB container registry. Replace the base64-encoded .dockerconfigjson with your actual credentials.
+
+AI Extensions: This deployment includes:
+
+pgvector - For vector similarity search
+pg_embedding - EDB's embedding generation extension
+pg_vectorize - For text vectorization
+Resource Requirements: AI workloads are resource-intensive. Adjust CPU/memory based on your workload.
+
+Storage: Vector operations require more storage. Adjust the size based on your expected data volume.
+
+Security: For production, use stronger passwords and consider implementing network policies.
+
+License: Ensure you have the appropriate EDB license for Postgres AI features.
+
+After deployment, you can connect to your EDB Postgres AI instance using:
+
+Host: postgres-ai-rw.edb-ai-namespace.svc.cluster.local
+Database: postgres
+Username: postgres
+Password: StrongPassword123
+
+Important Notes:
+Registry Access: Replace the base64-encoded .dockerconfigjson with your actual EDB registry credentials.
+
+Portworx Configuration:
+
+The configuration assumes Portworx is already installed on your OpenShift cluster
+Adjust the Portworx StorageClass parameters based on your specific requirements
+Update the backup endpoint URL to match your Portworx backup service
+Replica Configuration: This setup creates a 3-node cluster (1 primary + 2 replicas) with high availability enabled.
+
+Backup Strategy:
+
+EDB's built-in Barman backup is configured to use Portworx as the S3 endpoint
+Additional Portworx-native backups are scheduled daily
+Security: For production environments, use stronger passwords than 'keycloak' and 'postgres'.
+
+After deployment, Keycloak can connect to the database using:
+
+Host: keycloak-postgres-ai-rw.edb-keycloak.svc.cluster.local
+Database: keycloak
+Username: keycloak
+Password: keycloak
+
+
+How to Use the Ansible Playbook:
+Save the playbook as edb_postgres_ai_deploy.yml
+Save the template as edb-postgres-ai-keycloak.yaml.j2 in the same directory
+Update the variables in the playbook with your specific values:
+edb_registry_username and edb_registry_password: Your EDB registry credentials
+postgres_password and keycloak_password: Database passwords
+px_access_key and px_secret_key: Portworx backup credentials
+cluster_domain: Your OpenShift
+
