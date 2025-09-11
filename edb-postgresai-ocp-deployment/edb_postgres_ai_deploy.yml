@@ -1,0 +1,182 @@
+---
+# edb_postgres_ai_deploy.yml
+- name: Deploy EDB Postgres AI with Keycloak Database on OpenShift
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  vars:
+    # OpenShift configuration
+    openshift_namespace: edb-keycloak
+    
+    # EDB Registry credentials
+    edb_registry_username: "YOUR_USERNAME"
+    edb_registry_password: "YOUR_PASSWORD"
+    
+    # Database credentials
+    postgres_password: "postgres"
+    keycloak_password: "keycloak"
+    
+    # Portworx backup credentials
+    px_access_key: "YOUR_ACCESS_KEY"
+    px_secret_key: "YOUR_SECRET_KEY"
+    
+    # Cluster configuration
+    cluster_name: "keycloak-postgres-ai"
+    postgres_version: "15.4.0"
+    storage_size: "20Gi"
+    instances: 3
+    
+    # OpenShift cluster domain for routes
+    cluster_domain: "apps.your-cluster-domain.com"
+    
+    # Temporary file for YAML configuration
+    temp_yaml_file: "/tmp/edb-postgres-ai-keycloak.yaml"
+
+  tasks:
+    - name: Ensure OpenShift CLI (oc) is installed
+      command: which oc
+      register: oc_check
+      ignore_errors: true
+      changed_when: false
+      
+    - name: Fail if OpenShift CLI is not installed
+      fail:
+        msg: "OpenShift CLI (oc) is not installed. Please install it before running this playbook."
+      when: oc_check.rc != 0
+      
+    - name: Check if user is logged into OpenShift
+      command: oc whoami
+      register: oc_whoami
+      ignore_errors: true
+      changed_when: false
+      
+    - name: Fail if not logged into OpenShift
+      fail:
+        msg: "You are not logged into OpenShift. Please run 'oc login' before running this playbook."
+      when: oc_whoami.rc != 0
+      
+    - name: Create OpenShift namespace
+      command: oc new-project {{ openshift_namespace }}
+      register: create_namespace
+      ignore_errors: true
+      changed_when: create_namespace.rc == 0
+      
+    - name: Set namespace as current project
+      command: oc project {{ openshift_namespace }}
+      changed_when: false
+      
+    - name: Create base64 encoded credentials for EDB registry
+      set_fact:
+        edb_registry_auth: "{{ (edb_registry_username + ':' + edb_registry_password) | b64encode }}"
+        edb_registry_auth_json: "{{ '{\"auths\":{\"registry.enterprisedb.com\":{\"username\":\"' + edb_registry_username + '\",\"password\":\"' + edb_registry_password + '\",\"auth\":\"' + ((edb_registry_username + ':' + edb_registry_password) | b64encode) + '\"}}}' | b64encode }}"
+      no_log: true
+      
+    - name: Create base64 encoded passwords
+      set_fact:
+        postgres_password_b64: "{{ postgres_password | b64encode }}"
+        keycloak_password_b64: "{{ keycloak_password | b64encode }}"
+        px_access_key_b64: "{{ px_access_key | b64encode }}"
+        px_secret_key_b64: "{{ px_secret_key | b64encode }}"
+      no_log: true
+      
+    - name: Create EDB registry secret
+      command: >
+        oc create secret docker-registry edb-registry-secret 
+        --docker-server=registry.enterprisedb.com 
+        --docker-username={{ edb_registry_username }} 
+        --docker-password={{ edb_registry_password }}
+      register: create_registry_secret
+      ignore_errors: true
+      changed_when: create_registry_secret.rc == 0
+      no_log: true
+      
+    - name: Create PostgreSQL admin secret
+      command: >
+        oc create secret generic postgres-ai-admin 
+        --from-literal=password={{ postgres_password }}
+      register: create_postgres_secret
+      ignore_errors: true
+      changed_when: create_postgres_secret.rc == 0
+      no_log: true
+      
+    - name: Create Keycloak database credentials secret
+      command: >
+        oc create secret generic keycloak-db-credentials 
+        --from-literal=password={{ keycloak_password }}
+      register: create_keycloak_secret
+      ignore_errors: true
+      changed_when: create_keycloak_secret.rc == 0
+      no_log: true
+      
+    - name: Create Portworx backup credentials secret
+      command: >
+        oc create secret generic px-backup-creds 
+        --from-literal=accessKeyId={{ px_access_key }} 
+        --from-literal=secretAccessKey={{ px_secret_key }}
+      register: create_px_secret
+      ignore_errors: true
+      changed_when: create_px_secret.rc == 0
+      no_log: true
+      
+    - name: Create service account
+      command: >
+        oc create serviceaccount edb-ai-serviceaccount
+      register: create_sa
+      ignore_errors: true
+      changed_when: create_sa.rc == 0
+      
+    - name: Add registry secret to service account
+      command: >
+        oc secrets link edb-ai-serviceaccount edb-registry-secret --for=pull
+      ignore_errors: true
+      changed_when: false
+      
+    - name: Generate deployment YAML
+      template:
+        src: edb-postgres-ai-keycloak.yaml.j2
+        dest: "{{ temp_yaml_file }}"
+      
+    - name: Apply deployment YAML
+      command: oc apply -f {{ temp_yaml_file }}
+      register: apply_yaml
+      changed_when: apply_yaml.rc == 0
+      
+    - name: Wait for PostgreSQL cluster to be ready
+      command: oc get cluster {{ cluster_name }} -o jsonpath='{.status.phase}'
+      register: cluster_status
+      until: cluster_status.stdout == "Cluster in healthy state"
+      retries: 30
+      delay: 20
+      changed_when: false
+      ignore_errors: true
+      
+    - name: Get route hostnames
+      command: oc get routes -o jsonpath='{.items[*].spec.host}'
+      register: route_hostnames
+      changed_when: false
+      
+    - name: Display connection information
+      debug:
+        msg:
+          - "EDB Postgres AI with Keycloak database has been deployed successfully!"
+          - "Internal connection (for applications within the cluster):"
+          - "  Host: {{ cluster_name }}-rw.{{ openshift_namespace }}.svc.cluster.local"
+          - "  Port: 5432"
+          - "  Database: keycloak"
+          - "  Username: keycloak"
+          - "  Password: {{ keycloak_password }}"
+          - ""
+          - "External connection (via OpenShift Route):"
+          - "  Routes: {{ route_hostnames.stdout }}"
+          - "  Port: 5432"
+          - "  Database: keycloak"
+          - "  Username: keycloak"
+          - "  Password: {{ keycloak_password }}"
+      no_log: false
+      
+    - name: Clean up temporary files
+      file:
+        path: "{{ temp_yaml_file }}"
+        state: absent
+      changed_when: false
