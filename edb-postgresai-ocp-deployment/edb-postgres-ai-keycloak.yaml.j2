@@ -1,0 +1,314 @@
+# edb-postgres-ai-keycloak.yaml.j2
+---
+# Create Portworx StorageClass for PostgreSQL data
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: px-postgres-sc
+provisioner: kubernetes.io/portworx-volume
+parameters:
+  repl: "3"
+  io_profile: "db"
+  io_priority: "high"
+---
+# Create Portworx StorageClass for backups
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: px-backup-sc
+provisioner: kubernetes.io/portworx-volume
+parameters:
+  repl: "2"
+  io_profile: "sequential"
+  io_priority: "medium"
+---
+# Deploy EDB Postgres AI cluster with replicas
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: Cluster
+metadata:
+  name: {{ cluster_name }}
+  namespace: {{ openshift_namespace }}
+  labels:
+    app: {{ cluster_name }}
+spec:
+  instances: {{ instances }}
+  
+  # Use EDB Postgres AI image
+  imageName: registry.enterprisedb.com/edb-postgres-ai:{{ postgres_version }}
+  imagePullSecrets:
+    - name: edb-registry-secret
+  
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "512MB"
+      # AI extension parameters
+      pgvector.dimension: "1536"  # For OpenAI embeddings
+      
+  # Storage configuration
+  storage:
+    size: {{ storage_size }}
+    storageClass: px-postgres-sc  # Using Portworx storage class
+  
+  # Bootstrap superuser credentials
+  bootstrap:
+    initdb:
+      database: postgres
+      owner: postgres
+      secret:
+        name: postgres-ai-admin
+  
+  # Resources for AI workloads
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  
+  # Replica configuration
+  replicationSlots:
+    highAvailability:
+      enabled: true
+  
+  # OpenShift specific configurations
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+  
+  # Security context for OpenShift
+  primaryUpdateStrategy: unsupervised
+  
+  # Monitoring configuration
+  monitoring:
+    enablePodMonitor: true
+  
+  # Backup configuration using Portworx
+  backup:
+    retentionPolicy: 30d
+    barmanObjectStore:
+      destinationPath: s3://px-backup/{{ cluster_name }}
+      endpointURL: https://px-backup-service.portworx.svc.cluster.local
+      s3Credentials:
+        accessKeyId:
+          name: px-backup-creds
+          key: accessKeyId
+        secretAccessKey:
+          name: px-backup-creds
+          key: secretAccessKey
+      wal:
+        compression: snappy
+        maxParallel: 8
+      data:
+        compression: snappy
+        immediateCheckpoint: true
+        jobs: 4
+---
+# Create the Keycloak database
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: PostgresqlDatabase
+metadata:
+  name: keycloak-db
+  namespace: {{ openshift_namespace }}
+spec:
+  cluster:
+    name: {{ cluster_name }}
+  database: keycloak
+  owner: keycloak
+---
+# Create the Keycloak user
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: PostgresqlUser
+metadata:
+  name: keycloak-user
+  namespace: {{ openshift_namespace }}
+spec:
+  cluster:
+    name: {{ cluster_name }}
+  name: keycloak
+  password:
+    secretName: keycloak-db-credentials
+    secretKey: password
+  login: true
+  options:
+    - CREATEDB
+    - NOSUPERUSER
+---
+# Post-initialization script to enable AI extensions
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-ai-init
+  namespace: {{ openshift_namespace }}
+spec:
+  template:
+    spec:
+      serviceAccountName: edb-ai-serviceaccount
+      containers:
+      - name: postgres-client
+        image: registry.enterprisedb.com/edb-postgres-client:15
+        command:
+        - /bin/bash
+        - -c
+        - |
+          PGPASSWORD=$(cat /etc/postgres-password/password) psql -h {{ cluster_name }}-rw -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS pgvector; CREATE EXTENSION IF NOT EXISTS pg_embedding; CREATE EXTENSION IF NOT EXISTS pg_vectorize;"
+          PGPASSWORD=$(cat /etc/postgres-password/password) psql -h {{ cluster_name }}-rw -U postgres -d keycloak -c "CREATE EXTENSION IF NOT EXISTS pgvector; CREATE EXTENSION IF NOT EXISTS pg_embedding; CREATE EXTENSION IF NOT EXISTS pg_vectorize;"
+        volumeMounts:
+        - name: postgres-password
+          mountPath: /etc/postgres-password
+      volumes:
+      - name: postgres-password
+        secret:
+          secretName: postgres-ai-admin
+      restartPolicy: OnFailure
+---
+# Create a scheduled backup job using Portworx
+apiVersion: stork.libopenstorage.org/v1alpha1
+kind: SchedulePolicy
+metadata:
+  name: keycloak-postgres-backup-policy
+  namespace: {{ openshift_namespace }}
+spec:
+  interval:
+    intervalMinutes: 1440  # Daily backup
+---
+apiVersion: stork.libopenstorage.org/v1alpha1
+kind: BackupLocation
+metadata:
+  name: px-backup-location
+  namespace: {{ openshift_namespace }}
+spec:
+  type: s3
+  s3Config:
+    region: us-east-1
+    accessKeyID: {{ px_access_key }}
+    secretAccessKey: {{ px_secret_key }}
+    endpoint: https://px-backup-service.portworx.svc.cluster.local
+    bucket: px-backup
+---
+apiVersion: stork.libopenstorage.org/v1alpha1
+kind: ApplicationBackupSchedule
+metadata:
+  name: keycloak-postgres-backup-schedule
+  namespace: {{ openshift_namespace }}
+spec:
+  schedulePolicyName: keycloak-postgres-backup-policy
+  template:
+    spec:
+      backupLocation: px-backup-location
+      namespaces:
+        - {{ openshift_namespace }}
+      selectors:
+        app: {{ cluster_name }}
+---
+# Create an additional Service for external access to the database
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ cluster_name }}-external
+  namespace: {{ openshift_namespace }}
+  labels:
+    app: {{ cluster_name }}
+spec:
+  selector:
+    postgresql: {{ cluster_name }}
+    role: primary
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+# Create a Service for admin access to the database
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ cluster_name }}-admin
+  namespace: {{ openshift_namespace }}
+  labels:
+    app: {{ cluster_name }}
+    role: admin-access
+spec:
+  selector:
+    postgresql: {{ cluster_name }}
+    role: primary
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+# Create a Route for secure external access to the admin service
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ cluster_name }}-admin-route
+  namespace: {{ openshift_namespace }}
+  labels:
+    app: {{ cluster_name }}
+  annotations:
+    description: "Route for PostgreSQL admin access"
+spec:
+  to:
+    kind: Service
+    name: {{ cluster_name }}-admin
+    weight: 100
+  port:
+    targetPort: postgres
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect
+---
+# Create a Route for secure external access to the database
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ cluster_name }}-route
+  namespace: {{ openshift_namespace }}
+  labels:
+    app: {{ cluster_name }}
+  annotations:
+    description: "Route for PostgreSQL database access"
+spec:
+  to:
+    kind: Service
+    name: {{ cluster_name }}-external
+    weight: 100
+  port:
+    targetPort: postgres
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect
+---
+# Create a ConfigMap for database connection information
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ cluster_name }}-connection-info
+  namespace: {{ openshift_namespace }}
+data:
+  README.md: |
+    # EDB Postgres AI for Keycloak Connection Information
+    
+    ## Internal Connection (for applications within the cluster)
+    - Host: {{ cluster_name }}-rw.{{ openshift_namespace }}.svc.cluster.local
+    - Port: 5432
+    - Database: keycloak
+    - Username: keycloak
+    - Password: keycloak (stored in Secret: keycloak-db-credentials)
+    
+    ## External Connection (via OpenShift Route)
+    - Host: {{ cluster_name }}-route-{{ openshift_namespace }}.{{ cluster_domain }}
+    - Port: 5432
+    - Database: keycloak
+    - Username: keycloak
+    - Password: keycloak (stored in Secret: keycloak-db-credentials)
+    
+    ## Admin Connection (via OpenShift Route)
+    - Host: {{ cluster_name }}-admin-route-{{ openshift_namespace }}.{{ cluster_domain }}
+    - Port: 5432
+    - Database: postgres
+    - Username: postgres
+    - Password: postgres (stored in Secret: postgres-ai-admin)
