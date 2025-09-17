@@ -1,0 +1,45 @@
+---
+# Restore configuration for EDB Postgres AI cluster
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: Restore
+metadata:
+  name: {{ cluster_name }}-restore
+  namespace: {{ openshift_namespace }}
+spec:
+  cluster:
+    name: {{ cluster_name }}
+  source:
+    name: {{ cluster_name }}-backup
+    kind: Backup
+  targetTime: "{{ '%Y-%m-%dT%H:%M:%SZ' | strftime }}"  # Current time - restore to latest backup
+  recoveryTarget:
+    targetImmediate: true
+  externalCluster: {}  # Empty means restore to the same cluster
+---
+# Disaster Recovery Restore configuration for EDB Postgres AI cluster
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: Restore
+metadata:
+  name: {{ cluster_name }}-dr-restore
+  namespace: {{ openshift_namespace }}
+spec:
+  cluster:
+    name: {{ cluster_name }}
+  source:
+    externalCluster:
+      name: {{ source_cluster_name }}
+      barmanObjectStore:
+        destinationPath: s3://edb-postgres-backups/{{ source_cluster_name }}
+        s3Credentials:
+          accessKeyId:
+            key: accessKeyId
+            name: px-backup-creds
+          secretAccessKey:
+            key: secretAccessKey
+            name: px-backup-creds
+        endpointURL: https://s3.amazonaws.com
+        wal:
+          maxParallel: 8
+  targetTime: "{{ recovery_timestamp | default('') }}"  # Can be set to specific timestamp
+  recoveryTarget:
+    targetImmediate: true
