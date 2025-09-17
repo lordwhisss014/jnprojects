@@ -312,3 +312,36 @@ data:
     - Database: postgres
     - Username: postgres
     - Password: postgres (stored in Secret: postgres-ai-admin)
+    ---
+# Backup configuration for EDB Postgres AI cluster
+apiVersion: postgresql.k8s.enterprisedb.io/v1
+kind: Backup
+metadata:
+  name: {{ cluster_name }}-backup
+  namespace: {{ openshift_namespace }}
+spec:
+  cluster:
+    name: {{ cluster_name }}
+  method: volume-snapshot
+  schedule: "0 2 * * *"  # Daily backup at 2 AM
+  backupOwnerReference: self
+  target:
+    serverName: primary
+  volumeSnapshot:
+    className: px-csi-portworx
+    storage:
+      type: s3
+      s3:
+        bucket: edb-postgres-backups
+        region: us-east-1
+        endpoint: s3.amazonaws.com
+        enableIntegrityCheck: true
+        secretKeySelectors:
+          accessKeyId:
+            key: accessKeyId
+            name: px-backup-creds
+          secretAccessKey:
+            key: secretAccessKey
+            name: px-backup-creds
+  retentionPolicy: "30d"
+
