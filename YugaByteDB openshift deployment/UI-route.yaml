@@ -1,0 +1,23 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: yb-master-ui
+  namespace: yugabyte
+spec:
+  to:
+    kind: Service
+    name: yb-master-ui
+  port:
+    targetPort: ui
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: yb-tserver-ui
+  namespace: yugabyte
+spec:
+  to:
+    kind: Service
+    name: yb-tserver-ui
+  port:
+    targetPort: ui
