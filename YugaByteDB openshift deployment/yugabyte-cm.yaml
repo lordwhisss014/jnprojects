@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yugabyte-config
+data:
+  master-flags: "--master_addresses=yb-master-0.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-1.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-2.yb-masters.yugabyte.svc.cluster.local:7100"
+  tserver-flags: "--tserver_master_addrs=yb-master-0.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-1.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-2.yb-masters.yugabyte.svc.cluster.local:7100"
