@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: yb-tserver
+  namespace: yugabyte
+spec:
+  serviceName: yb-tservers
+  replicas: 3
+  selector:
+    matchLabels:
+      app: yugabyte
+      component: yb-tserver
+  template:
+    metadata:
+      labels:
+        app: yugabyte
+        component: yb-tserver
+    spec:
+      serviceAccountName: yugabyte
+      containers:
+      - name: yb-tserver
+        image: docker.io/yugabytedb/yugabyte:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/home/yugabyte/bin/yb-tserver"
+        - "--fs_data_dirs=/mnt/data0"
+        - "--rpc_bind_addresses=0.0.0.0:9100"
+        - "--webserver_interface=0.0.0.0"
+        - "--tserver_master_addrs=yb-master-0.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-1.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-2.yb-masters.yugabyte.svc.cluster.local:7100"
+        ports:
+        - containerPort: 9000
+          name: ui
+        - containerPort: 9100
+          name: rpc-port
+        - containerPort: 9042
+          name: cassandra
+        - containerPort: 6379
+          name: redis
+        - containerPort: 5433
+          name: postgres
+        volumeMounts:
+        - name: datadir
+          mountPath: /mnt/data0
+        readinessProbe:
+          tcpSocket:
+            port: 9100
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 9100
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 2Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi

@@ -1,0 +1,106 @@
+stages:
+  - validate
+  - deploy-dev
+  - test-dev
+  - deploy-staging
+  - test-staging
+  - deploy-prod
+  - test-prod
+
+variables:
+  OPENSHIFT_SERVER: ${OPENSHIFT_SERVER}
+  OPENSHIFT_TOKEN: ${OPENSHIFT_TOKEN}
+  NAMESPACE_DEV: yugabyte-dev
+  NAMESPACE_STAGING: yugabyte-staging
+  NAMESPACE_PROD: yugabyte-prod
+
+# Template for deployment jobs
+.deploy_template: &deploy_definition
+  image: registry.access.redhat.com/openshift4/ose-cli:latest
+  before_script:
+    - oc login --token=${OPENSHIFT_TOKEN} --server=${OPENSHIFT_SERVER} --insecure-skip-tls-verify
+    - chmod +x ./scripts/deploy.sh
+    - chmod +x ./scripts/verify.sh
+    - sed -i "s/yugabyte/${NAMESPACE}/g" ./manifests/*.yaml
+
+validate:
+  stage: validate
+  image: registry.access.redhat.com/openshift4/ose-cli:latest
+  script:
+    - for file in manifests/*.yaml; do oc apply --dry-run=client -f $file; done
+  only:
+    - merge_requests
+
+deploy-dev:
+  <<: *deploy_definition
+  stage: deploy-dev
+  variables:
+    NAMESPACE: ${NAMESPACE_DEV}
+  script:
+    - ./scripts/deploy.sh ${NAMESPACE}
+  environment:
+    name: development
+  only:
+    - develop
+
+test-dev:
+  <<: *deploy_definition
+  stage: test-dev
+  variables:
+    NAMESPACE: ${NAMESPACE_DEV}
+  script:
+    - ./scripts/verify.sh ${NAMESPACE}
+  environment:
+    name: development
+  only:
+    - develop
+
+deploy-staging:
+  <<: *deploy_definition
+  stage: deploy-staging
+  variables:
+    NAMESPACE: ${NAMESPACE_STAGING}
+  script:
+    - ./scripts/deploy.sh ${NAMESPACE}
+  environment:
+    name: staging
+  only:
+    - main
+  when: manual
+
+test-staging:
+  <<: *deploy_definition
+  stage: test-staging
+  variables:
+    NAMESPACE: ${NAMESPACE_STAGING}
+  script:
+    - ./scripts/verify.sh ${NAMESPACE}
+  environment:
+    name: staging
+  only:
+    - main
+
+deploy-prod:
+  <<: *deploy_definition
+  stage: deploy-prod
+  variables:
+    NAMESPACE: ${NAMESPACE_PROD}
+  script:
+    - ./scripts/deploy.sh ${NAMESPACE}
+  environment:
+    name: production
+  only:
+    - tags
+  when: manual
+
+test-prod:
+  <<: *deploy_definition
+  stage: test-prod
+  variables:
+    NAMESPACE: ${NAMESPACE_PROD}
+  script:
+    - ./scripts/verify.sh ${NAMESPACE}
+  environment:
+    name: production
+  only:
+    - tags

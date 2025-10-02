@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: yb-master
+  namespace: yugabyte
+spec:
+  serviceName: yb-masters
+  replicas: 3
+  selector:
+    matchLabels:
+      app: yugabyte
+      component: yb-master
+  template:
+    metadata:
+      labels:
+        app: yugabyte
+        component: yb-master
+    spec:
+      serviceAccountName: yugabyte
+      containers:
+      - name: yb-master
+        image: docker.io/yugabytedb/yugabyte:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/home/yugabyte/bin/yb-master"
+        - "--fs_data_dirs=/mnt/data0"
+        - "--rpc_bind_addresses=0.0.0.0:7100"
+        - "--webserver_interface=0.0.0.0"
+        - "--master_addresses=yb-master-0.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-1.yb-masters.yugabyte.svc.cluster.local:7100,yb-master-2.yb-masters.yugabyte.svc.cluster.local:7100"
+        - "--replication_factor=3"
+        ports:
+        - containerPort: 7000
+          name: ui
+        - containerPort: 7100
+          name: rpc-port
+        volumeMounts:
+        - name: datadir
+          mountPath: /mnt/data0
+        readinessProbe:
+          tcpSocket:
+            port: 7100
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 7100
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 2Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
