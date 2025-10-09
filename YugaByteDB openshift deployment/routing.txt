@@ -1,0 +1,29 @@
+# Create route for Master UI
+oc create route edge yb-master-ui --service=yb-master-ui --port=7000 -n yugabyte
+
+# Create route for TServer UI
+oc create route edge yb-tserver-ui --service=yb-tserver-ui --port=9000 -n yugabyte
+
+# Create route for YSQL (PostgreSQL)
+oc create route edge yb-ysql --service=yb-ysql --port=5433 -n yugabyte
+
+# Create route for YCQL (Cassandra)
+oc create route edge yb-ycql --service=yb-ycql --port=9042 -n yugabyte
+# Check if all pods are running
+oc get pods -n yugabyte
+
+# Get the Master UI URL
+echo "YugabyteDB Master UI: https://$(oc get route yb-master-ui -o jsonpath='{.spec.host}')"
+
+# Get the TServer UI URL
+echo "YugabyteDB TServer UI: https://$(oc get route yb-tserver-ui -o jsonpath='{.spec.host}')"
+# Get the YSQL endpoint
+YSQL_HOST=$(oc get route yb-ysql -o jsonpath='{.spec.host}' -n yugabyte)
+
+# Connect using psql
+psql -h $YSQL_HOST -p 5433 -U yugabyte -d yugabyte
+# Get the YCQL endpoint
+YCQL_HOST=$(oc get route yb-ycql -o jsonpath='{.spec.host}' -n yugabyte)
+
+# Connect using cqlsh
+cqlsh $YCQL_HOST 9042 -u cassandra
