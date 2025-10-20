@@ -15,7 +15,7 @@ services:
     volumes:
       - ./.docker/oracle-data:/opt/oracle/oradata
     healthcheck:
-      test: ["CMD-SHELL", "echo 'SELECT 1 FROM dual;' | sqlplus -s sys/teste@123@//localhost:1521/ORCLPDB1 as sysdba"]
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM dual;' | sqlplus -s sys/keycloak@//localhost:1521/ORCLPDB1 as sysdba"]
       interval: 30s
       timeout: 20s
       retries: 5
