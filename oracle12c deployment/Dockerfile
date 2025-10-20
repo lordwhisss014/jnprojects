@@ -8,7 +8,7 @@ services:
       - "1521:1521"
       - "5500:5500"
     environment:
-      ORACLE_PWD: "teste@123"
+      ORACLE_PWD: "keycloak"
       ORACLE_SID: "ORCLCDB"
       ORACLE_PDB: "ORCLPDB1"
       ORACLE_CHARACTERSET: "AL32UTF8"
