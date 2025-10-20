@@ -1,0 +1,1 @@
+docker run -dt --name oracledb -p 1521:1521 -p 5500:5500 -e ORACLE_SID=keycloak -e ORACLE_PDB=keycloak -e ORACLE_PWD=keycloak -v oracleDB:/opt/oracle/oradata
