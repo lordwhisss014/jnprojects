@@ -1,0 +1,6 @@
+# Start Oracle 12c
+docker-compose -f docker-compose-oracle12c.yml up -d
+
+# Start Oracle 21c (with different ports to avoid conflicts)
+# You'll need to modify the ports in oracle21c file to 1522:1521 and 5501:5500
+docker-compose -f docker-compose-oracle21c.yml up -d
