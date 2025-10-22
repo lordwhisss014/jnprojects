@@ -1,0 +1,33 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: yb-master-ui
+  namespace: yugabyte
+  labels:
+    app: yb-master
+spec:
+  to:
+    kind: Service
+    name: yb-master-external
+  port:
+    targetPort: ui
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: yb-tserver-ui
+  namespace: yugabyte
+  labels:
+    app: yb-tserver
+spec:
+  to:
+    kind: Service
+    name: yb-tserver-external
+  port:
+    targetPort: ui
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
