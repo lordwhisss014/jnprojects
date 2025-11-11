@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grumpling-dumplings
+  labels:
+    app: grumpling-dumplings
+    app.kubernetes.io/name: grumpling-dumplings
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: jn-projects-git-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grumpling-dumplings
+  template:
+    metadata:
+      labels:
+        app: grumpling-dumplings
+    spec:
+      containers:
+      - name: grumpling-dumplings
+        image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-git:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grumpling-dumplings
+  labels:
+    app: grumpling-dumplings
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: grumpling-dumplings
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: grumpling-dumplings
+  labels:
+    app: grumpling-dumplings
+spec:
+  to:
+    kind: Service
+    name: grumpling-dumplings
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
