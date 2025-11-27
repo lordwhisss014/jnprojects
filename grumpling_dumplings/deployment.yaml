@@ -6,7 +6,7 @@ metadata:
   labels:
     app: grumpling-dumplings
     app.kubernetes.io/name: grumpling-dumplings
-    app.kubernetes.io/component: frontend
+    app.kubernetes.io/component: full-stack
     app.kubernetes.io/part-of: jn-projects-git-app
 spec:
   replicas: 1
@@ -19,25 +19,75 @@ spec:
         app: grumpling-dumplings
     spec:
       containers:
-      - name: grumpling-dumplings
-        image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-git:latest
+      # -----------------------------------------------------
+      # CONTAINER 1: FRONTEND (Nginx)
+      # This serves HTML and proxies /api to localhost:3000
+      # -----------------------------------------------------
+      - name: frontend
+        # UPDATE THIS: This image must be built from your 'frontend/' folder
+        image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-frontend:latest
         ports:
         - containerPort: 8080
           protocol: TCP
         livenessProbe:
           httpGet:
-            path: /healthz
+            path: /index.html # Check if Nginx is serving file
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /index.html
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop: ["ALL"]
+
+      # -----------------------------------------------------
+      # CONTAINER 2: BACKEND (Node.js)
+      # This handles the API logic and DB connection
+      # -----------------------------------------------------
+      - name: backend
+        # UPDATE THIS: This image must be built from your 'backend/' folder
+        image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-backend:latest
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "3000"
+        - name: DB_HOST
+          value: "postgresql" # Ensure this matches your Service Name for Postgres
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql # This secret is auto-created by OpenShift when adding DB
+              key: database-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql
+              key: database-password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: postgresql
+              key: database-name
+        - name: JWT_SECRET
+          value: "replace_this_with_a_secure_random_string"
         resources:
           limits:
             cpu: 200m
@@ -49,9 +99,10 @@ spec:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
           capabilities:
-            drop:
-            - ALL
+            drop: ["ALL"]
+
 ---
+# SERVICE (No changes needed, points to Frontend port 8080)
 apiVersion: v1
 kind: Service
 metadata:
@@ -67,7 +118,9 @@ spec:
     name: http
   selector:
     app: grumpling-dumplings
+
 ---
+# ROUTE (No changes needed)
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
