@@ -155,6 +155,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+// CRITICAL FIX: Added '0.0.0.0' to ensure IPv4 binding
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API running on port ${PORT}`);
 });
