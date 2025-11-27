@@ -1,13 +1,18 @@
 FROM node:18-alpine
 WORKDIR /usr/src/app
 
-# Copy dependencies and install
+# Copy package.json
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Copy server code
+# FIX: Use 'npm install' instead of 'npm ci'
+# 'npm install' will generate the missing lock file automatically.
+RUN npm install
+
+# Copy the rest of the backend code
 COPY . .
 
-# Node runs on 3000
+# Expose the port
 EXPOSE 3000
+
+# Start the server
 CMD [ "npm", "start" ]
