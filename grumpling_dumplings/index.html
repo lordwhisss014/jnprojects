@@ -28,7 +28,7 @@
             height: auto;
         }
         h1 {
-            color: #d32f2f; /* A reddish tone similar to the logo */
+            color: #d32f2f;
             font-size: 2.5em;
             margin-top: 10px;
             text-transform: uppercase;
@@ -54,7 +54,8 @@
         .menu-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            align-items: center;
+            padding: 12px 0;
             border-bottom: 1px dotted #ccc;
         }
         .menu-item:last-child {
@@ -62,10 +63,12 @@
         }
         .item-name {
             font-weight: bold;
+            flex: 1;
         }
         .item-price {
             color: #d32f2f;
             font-weight: bold;
+            margin: 0 15px;
         }
         .notes, .contact-info, .order-info {
             font-size: 0.9em;
@@ -113,9 +116,330 @@
             padding-top: 20px;
             border-top: 1px solid #eee;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: #000; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #d32f2f;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #d32f2f;
+            color: white;
+            width: 100%;
+        }
+        .btn-primary:hover { background-color: #b71c1c; }
+        .btn-secondary {
+            background-color: #757575;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover { background-color: #616161; }
+        .btn-cart {
+            background-color: #ff6b6b;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        .btn-cart:hover { background-color: #ff5252; }
+        .link-btn {
+            background: none;
+            border: none;
+            color: #d32f2f;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+            padding: 5px;
+        }
+        .link-btn:hover { color: #b71c1c; }
+        .text-center {
+            text-align: center;
+        }
+        .error-message {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .success-message {
+            color: #4caf50;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        /* Cart Styles */
+        .cart-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d32f2f;
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 999;
+            font-size: 24px;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff9800;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .cart-panel {
+            position: fixed;
+            right: -450px;
+            top: 0;
+            width: 450px;
+            max-width: 100%;
+            height: 100%;
+            background-color: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+            transition: right 0.3s;
+            z-index: 1001;
+            overflow-y: auto;
+        }
+        .cart-panel.open { right: 0; }
+        .cart-header {
+            background-color: #d32f2f;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cart-items {
+            padding: 20px;
+            min-height: 300px;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            gap: 10px;
+        }
+        .cart-item-info {
+            flex: 1;
+        }
+        .cart-item-qty {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .qty-btn {
+            background-color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .qty-btn:hover { background-color: #e0e0e0; }
+        .cart-total {
+            padding: 20px;
+            border-top: 2px solid #ddd;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        /* Updated User Info Styles */
+        .user-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .login-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .logout-btn:hover, .login-btn:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .cart-panel {
+                width: 100%;
+                right: -100%;
+            }
+            .user-info {
+                font-size: 0.8em;
+                padding: 8px 15px;
+                top: 10px;
+                left: 10px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="user-info" id="userInfo">
+        <div id="loggedInPanel" style="display: none;">
+            <span>Welcome, <strong id="userName"></strong></span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <div id="guestPanel">
+            <span>Welcome, Guest</span>
+            <button class="login-btn" onclick="showLogin()">Login</button>
+        </div>
+    </div>
+
+    <div class="cart-icon" onclick="toggleCart()">
+        🛒
+        <span class="cart-badge" id="cartBadge">0</span>
+    </div>
+
+    <div class="cart-panel" id="cartPanel">
+        <div class="cart-header">
+            <h2>Shopping Cart</h2>
+            <span class="close" onclick="toggleCart()">&times;</span>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <p style="text-align: center; color: #999;">Your cart is empty</p>
+        </div>
+        <div class="cart-total">
+            <div>Total: ₱<span id="cartTotal">0.00</span></div>
+            <button class="btn btn-primary" style="margin-top: 15px;" onclick="checkout()">Checkout</button>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModals()">&times;</span>
+            <h2 style="text-align: center; color: #d32f2f; margin-bottom: 20px;">Login</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required placeholder="Enter your password">
+                </div>
+                <div id="loginError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <p class="text-center" style="margin-top: 15px;">
+                Don't have an account? 
+                <button class="link-btn" onclick="showRegister()">Register here</button>
+            </p>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModals()">&times;</span>
+            <h2 style="text-align: center; color: #d32f2f; margin-bottom: 20px;">Register</h2>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regUsername">Username</label>
+                    <input type="text" id="regUsername" name="username" required placeholder="Choose a username" minlength="3">
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" name="email" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" name="password" required placeholder="Choose a password" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">Confirm Password</label>
+                    <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                </div>
+                <div id="registerError" class="error-message"></div>
+                <div id="registerSuccess" class="success-message"></div>
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+            <p class="text-center" style="margin-top: 15px;">
+                Already have an account? 
+                <button class="link-btn" onclick="showLogin()">Login here</button>
+            </p>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <img src="./src/logo.png" alt="Grumbling Dumpling Logo" class="logo">
@@ -128,27 +452,33 @@
                 <ul class="menu-list">
                     <li class="menu-item">
                         <span class="item-name">Pork and Shrimp Siomai <br> 12 Pcs</span>
-                        <span class="item-price">285</span>
+                        <span class="item-price">₱285</span>
+                        <button class="btn btn-cart" onclick="addToCart('Pork and Shrimp Siomai (12 Pcs)', 285)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Sharksfin Dumplings <br> 12 Pcs</span>
-                        <span class="item-price">285</span>
+                        <span class="item-price">₱285</span>
+                        <button class="btn btn-cart" onclick="addToCart('Sharksfin Dumplings (12 Pcs)', 285)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Special Kikiam <br> 3 Pcs</span>
-                        <span class="item-price">370</span>
+                        <span class="item-price">₱370</span>
+                        <button class="btn btn-cart" onclick="addToCart('Special Kikiam (3 Pcs)', 370)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Siopao Asado <br> 8 Pcs</span>
-                        <span class="item-price">315</span>
+                        <span class="item-price">₱315</span>
+                        <button class="btn btn-cart" onclick="addToCart('Siopao Asado (8 Pcs)', 315)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Siopao Bola Bola <br> 8 Pcs</span>
-                        <span class="item-price">315</span>
+                        <span class="item-price">₱315</span>
+                        <button class="btn btn-cart" onclick="addToCart('Siopao Bola Bola (8 Pcs)', 315)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Chili Sauce <br> 1 Bottle 100 ml</span>
-                        <span class="item-price">125</span>
+                        <span class="item-price">₱125</span>
+                        <button class="btn btn-cart" onclick="addToCart('Chili Sauce (100ml)', 125)">Add to Cart</button>
                     </li>
                 </ul>
 
@@ -156,27 +486,33 @@
                 <ul class="menu-list">
                     <li class="menu-item">
                         <span class="item-name">Pork & Shrimp Wanton <br> 12 Pcs</span>
-                        <span class="item-price">335</span>
+                        <span class="item-price">₱335</span>
+                        <button class="btn btn-cart" onclick="addToCart('Pork & Shrimp Wanton (12 Pcs)', 335)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Xiao Long Bao <br> 12 Pcs</span>
-                        <span class="item-price">335</span>
+                        <span class="item-price">₱335</span>
+                        <button class="btn btn-cart" onclick="addToCart('Xiao Long Bao (12 Pcs)', 335)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Kuchay Dumpling <br> 12 Pcs</span>
-                        <span class="item-price">350</span>
+                        <span class="item-price">₱350</span>
+                        <button class="btn btn-cart" onclick="addToCart('Kuchay Dumpling (12 Pcs)', 350)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Taosi Spareribs <br> Approx. 500g</span>
-                        <span class="item-price">370</span>
+                        <span class="item-price">₱370</span>
+                        <button class="btn btn-cart" onclick="addToCart('Taosi Spareribs (500g)', 370)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Chicken Feet <br> Approx. 500g</span>
-                        <span class="item-price">250</span>
+                        <span class="item-price">₱250</span>
+                        <button class="btn btn-cart" onclick="addToCart('Chicken Feet (500g)', 250)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Taipao Bola <br> 1 Pc</span>
-                        <span class="item-price">150</span>
+                        <span class="item-price">₱150</span>
+                        <button class="btn btn-cart" onclick="addToCart('Taipao Bola (1 Pc)', 150)">Add to Cart</button>
                     </li>
                 </ul>
 
@@ -184,15 +520,18 @@
                 <ul class="menu-list">
                     <li class="menu-item">
                         <span class="item-name">Hakaw <br> 12 Pcs</span>
-                        <span class="item-price">335</span>
+                        <span class="item-price">₱335</span>
+                        <button class="btn btn-cart" onclick="addToCart('Hakaw (12 Pcs)', 335)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Beancurd Roll <br> 7 Pcs</span>
-                        <span class="item-price">295</span>
+                        <span class="item-price">₱295</span>
+                        <button class="btn btn-cart" onclick="addToCart('Beancurd Roll (7 Pcs)', 295)">Add to Cart</button>
                     </li>
                     <li class="menu-item">
                         <span class="item-name">Special Japanese Siomai <br> 12 Pcs</span>
-                        <span class="item-price">335</span>
+                        <span class="item-price">₱335</span>
+                        <button class="btn btn-cart" onclick="addToCart('Special Japanese Siomai (12 Pcs)', 335)">Add to Cart</button>
                     </li>
                 </ul>
             </section>
@@ -252,5 +591,343 @@
             &copy; Grumbling Dumpling. All rights reserved.
         </footer>
     </div>
+
+    <script>
+        // API Configuration
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api' 
+            : '/api';
+
+        // Cart state
+        let cart = [];
+        let isLoggedIn = false;
+        let currentUser = null;
+        let authToken = null;
+
+        // Check login status on page load
+        window.onload = function() {
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('currentUser');
+            
+            if (token && user) {
+                // User IS logged in
+                authToken = token;
+                currentUser = JSON.parse(user);
+                isLoggedIn = true;
+                updateUserInterface();
+                loadCart();
+            } else {
+                // User is a GUEST (Do NOT show modal automatically)
+                isLoggedIn = false;
+                updateUserInterface();
+            }
+        };
+
+        // UI Update Function - Toggles between Guest and User view in top bar
+        function updateUserInterface() {
+            const loggedInPanel = document.getElementById('loggedInPanel');
+            const guestPanel = document.getElementById('guestPanel');
+            const userNameSpan = document.getElementById('userName');
+
+            if (isLoggedIn && currentUser) {
+                loggedInPanel.style.display = 'block';
+                guestPanel.style.display = 'none';
+                userNameSpan.textContent = currentUser.username;
+            } else {
+                loggedInPanel.style.display = 'none';
+                guestPanel.style.display = 'block';
+            }
+        }
+
+        // Show/Hide Modals
+        function showLogin() {
+            document.getElementById('registerModal').style.display = 'none';
+            document.getElementById('loginModal').style.display = 'block';
+            clearMessages();
+        }
+
+        function showRegister() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'block';
+            clearMessages();
+        }
+
+        function closeAuthModals() {
+            // Unconditional close - allows guests to close the window
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'none';
+        }
+
+        function clearMessages() {
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('registerError').textContent = '';
+            document.getElementById('registerSuccess').textContent = '';
+        }
+
+        // Register handler
+        async function handleRegister(event) {
+            event.preventDefault();
+            clearMessages();
+
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // Validation
+            if (password !== confirmPassword) {
+                document.getElementById('registerError').textContent = 'Passwords do not match';
+                return;
+            }
+
+            if (password.length < 6) {
+                document.getElementById('registerError').textContent = 'Password must be at least 6 characters';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('registerSuccess').textContent = 'Registration successful! Please login.';
+                    document.getElementById('registerForm').reset();
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    document.getElementById('registerError').textContent = data.error || 'Registration failed';
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                document.getElementById('registerError').textContent = 'Network error. Please try again.';
+            }
+        }
+
+        // Login handler
+        async function handleLogin(event) {
+            event.preventDefault();
+            clearMessages();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = { 
+                        id: data.user.id,
+                        username: data.user.username, 
+                        email: data.user.email 
+                    };
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    isLoggedIn = true;
+                    updateUserInterface(); // Update the UI
+                    closeAuthModals();
+                    loadCart();
+                    
+                    alert('Login successful! Welcome to Grumpling Dumpling!');
+                } else {
+                    document.getElementById('loginError').textContent = data.error || 'Login failed';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('loginError').textContent = 'Network error. Please try again.';
+            }
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('cart');
+                authToken = null;
+                isLoggedIn = false;
+                currentUser = null;
+                cart = [];
+                updateUserInterface(); // Reset UI to Guest mode
+                updateCart();
+                document.getElementById('cartPanel').classList.remove('open');
+            }
+        }
+
+        // Add to cart
+        function addToCart(name, price) {
+            // === MODIFICATION: Check login status here ===
+            if (!isLoggedIn) {
+                showLogin();
+                document.getElementById('loginError').textContent = "Please login to add items to your cart.";
+                return;
+            }
+            // ==============================================
+
+            const existingItem = cart.find(item => item.name === name);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({ name, price, quantity: 1 });
+            }
+            saveCart();
+            updateCart();
+            
+            // Show feedback
+            const cartIcon = document.querySelector('.cart-icon');
+            cartIcon.style.transform = 'scale(1.2)';
+            setTimeout(() => cartIcon.style.transform = 'scale(1)', 200);
+        }
+
+        // Update cart display
+        function updateCart() {
+            const cartItems = document.getElementById('cartItems');
+            const cartBadge = document.getElementById('cartBadge');
+            const cartTotal = document.getElementById('cartTotal');
+
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p style="text-align: center; color: #999;">Your cart is empty</p>';
+                cartBadge.textContent = '0';
+                cartTotal.textContent = '0.00';
+                return;
+            }
+
+            let totalItems = 0;
+            let totalPrice = 0;
+            let html = '';
+
+            cart.forEach((item, index) => {
+                totalItems += item.quantity;
+                totalPrice += item.price * item.quantity;
+                html += `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <strong>${item.name}</strong>
+                            <div>₱${item.price.toFixed(2)}</div>
+                        </div>
+                        <div class="cart-item-qty">
+                            <button class="qty-btn" onclick="updateQuantity(${index}, -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
+                        </div>
+                        <button class="qty-btn" onclick="removeItem(${index})" style="background-color: #f44336; color: white;">×</button>
+                    </div>
+                `;
+            });
+
+            cartItems.innerHTML = html;
+            cartBadge.textContent = totalItems;
+            cartTotal.textContent = totalPrice.toFixed(2);
+        }
+
+        // Update quantity
+        function updateQuantity(index, change) {
+            cart[index].quantity += change;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            saveCart();
+            updateCart();
+        }
+
+        // Remove item
+        function removeItem(index) {
+            cart.splice(index, 1);
+            saveCart();
+            updateCart();
+        }
+
+        // Toggle cart panel
+        function toggleCart() {
+            const cartPanel = document.getElementById('cartPanel');
+            cartPanel.classList.toggle('open');
+        }
+
+        // Save cart to localStorage
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+
+        // Load cart from localStorage
+        function loadCart() {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCart();
+            }
+        }
+
+        // Checkout
+        async function checkout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            try {
+                const response = await fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        items: cart,
+                        total: total
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let orderSummary = `Order #${data.orderId} placed successfully!\n\n`;
+                    orderSummary += 'Order Summary:\n\n';
+                    cart.forEach(item => {
+                        orderSummary += `${item.name} x${item.quantity} - ₱${(item.price * item.quantity).toFixed(2)}\n`;
+                    });
+                    orderSummary += `\nTotal: ₱${total.toFixed(2)}\n\nThank you for your order!\nWe will contact you shortly for payment and delivery details.`;
+                    alert(orderSummary);
+                    
+                    cart = [];
+                    saveCart();
+                    updateCart();
+                    toggleCart();
+                } else {
+                    alert('Failed to place order. Please try again.');
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const loginModal = document.getElementById('loginModal');
+            const registerModal = document.getElementById('registerModal');
+            
+            if (event.target === loginModal || event.target === registerModal) {
+                closeAuthModals();
+            }
+        };
+    </script>
 </body>
 </html>
