@@ -1,0 +1,66 @@
+# ---------------------------------------------------------
+# 1. IMAGE STREAMS
+# ---------------------------------------------------------
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jn-projects-frontend
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jn-projects-backend
+
+---
+# ---------------------------------------------------------
+# 2. FRONTEND BUILD CONFIG
+# ---------------------------------------------------------
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: build-frontend
+spec:
+  source:
+    git:
+      # The main repo URL
+      uri: "https://gitlab.com/itg-gitlab/jn-projects.git"
+      # The branch from your screenshot
+      ref: "prod"
+    # CRITICAL CHANGE: Added the parent folder from your screenshot
+    contextDir: "grumpling_dumplings/frontend"
+    sourceSecret:
+      name: gitlab
+  strategy:
+    type: Docker
+    dockerStrategy:
+      noCache: false
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jn-projects-frontend:latest
+
+---
+# ---------------------------------------------------------
+# 3. BACKEND BUILD CONFIG
+# ---------------------------------------------------------
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: build-backend
+spec:
+  source:
+    git:
+      uri: "https://gitlab.com/itg-gitlab/jn-projects.git"
+      ref: "prod"
+    # CRITICAL CHANGE: Added the parent folder from your screenshot
+    contextDir: "grumpling_dumplings/backend"
+    sourceSecret:
+      name: gitlab
+  strategy:
+    type: Docker
+    dockerStrategy:
+      noCache: false
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jn-projects-backend:latest
