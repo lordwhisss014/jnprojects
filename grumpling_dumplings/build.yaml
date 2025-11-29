@@ -1,0 +1,63 @@
+# ---------------------------------------------------------
+# 1. IMAGE STREAMS (Define where the resulting images are stored)
+# ---------------------------------------------------------
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jn-projects-frontend
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jn-projects-backend
+
+---
+# ---------------------------------------------------------
+# 2. BUILD CONFIGURATION: FRONTEND (Nginx)
+# ---------------------------------------------------------
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: build-frontend
+spec:
+  source:
+    git:
+      # Your confirmed repository URL
+      uri: "https://gitlab.com/itg-gitlab/jn-projects.git"
+      # Your confirmed branch
+      ref: "prod" 
+    # The corrected path inside your repository
+    contextDir: "grumpling_dumplings/frontend"
+    sourceSecret:
+      name: gitlab # The secret containing your GitLab credentials
+  strategy:
+    type: Docker
+    dockerStrategy: {}
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jn-projects-frontend:latest # Output tag for deployment
+---
+# ---------------------------------------------------------
+# 3. BUILD CONFIGURATION: BACKEND (Node.js)
+# ---------------------------------------------------------
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: build-backend
+spec:
+  source:
+    git:
+      uri: "https://gitlab.com/itg-gitlab/jn-projects.git"
+      ref: "prod"
+    # The corrected path inside your repository
+    contextDir: "grumpling_dumplings/backend"
+    sourceSecret:
+      name: gitlab
+  strategy:
+    type: Docker
+    dockerStrategy: {}
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jn-projects-backend:latest # Output tag for deployment
