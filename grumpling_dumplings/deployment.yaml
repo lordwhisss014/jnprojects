@@ -103,7 +103,7 @@ spec:
         # --- RESOURCES (INCREASED FOR AI MODEL) ---
         resources:
           limits:
-            cpu: "1"        # 1 Full Core for AI processing
+            cpu: 500m        # 500m for AI processing
             memory: 1Gi     # 1GB RAM to load the model
           requests:
             cpu: 500m
