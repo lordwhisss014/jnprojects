@@ -1,8 +1,5 @@
 const { createClient, SchemaFieldTypes, VectorAlgorithms } = require('redis');
 
-// --- DELETE THIS LINE: ---
-// const { pipeline } = require('@xenova/transformers'); 
-
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis-stack:6379';
 const INDEX_NAME = 'menu-index';
 
@@ -16,10 +13,8 @@ async function initChatbot() {
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
-    // 2. Load local AI model (Dynamic Import Fix)
+    // 2. Load local AI model (Dynamic Import)
     console.log("Loading AI library...");
-    
-    // --- FIX: Import the library dynamically here ---
     const { pipeline } = await import('@xenova/transformers');
     
     console.log("Loading AI model...");
@@ -27,7 +22,7 @@ async function initChatbot() {
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // 3. Create Vector Index if it doesn't exist
+    // 3. Create Vector Index
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
@@ -44,13 +39,26 @@ async function initChatbot() {
             PREFIX: 'item:'
         });
         console.log("Vector Index created.");
-        await seedData();
     } catch (e) {
         if (e.message === 'Index already exists') {
-            console.log("Index already exists, skipping creation.");
+            console.log("Index already exists.");
         } else {
             console.error(e);
         }
+    }
+
+    // 4. CRITICAL FIX: Check if data actually exists. If empty, SEED IT.
+    // This runs regardless of whether the index was just created or existed before.
+    try {
+        const checkData = await redisClient.ft.search(INDEX_NAME, '*', { LIMIT: { from: 0, size: 1 } });
+        if (checkData.total === 0) {
+            console.log("Index is empty! Starting seeding process...");
+            await seedData();
+        } else {
+            console.log(`Index contains ${checkData.total} items. Skipping seed.`);
+        }
+    } catch (err) {
+        console.error("Error checking index data:", err);
     }
 }
 
