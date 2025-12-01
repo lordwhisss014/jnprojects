@@ -26,12 +26,13 @@ spec:
       - name: frontend
         # UPDATE THIS: This image must be built from your 'frontend/' folder
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-frontend:latest
+        imagePullPolicy: Always # Ensures we always get the latest build
         ports:
         - containerPort: 8080
           protocol: TCP
         livenessProbe:
           httpGet:
-            path: /index.html # Check if Nginx is serving file
+            path: /index.html
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
@@ -55,26 +56,29 @@ spec:
             drop: ["ALL"]
 
       # -----------------------------------------------------
-      # CONTAINER 2: BACKEND (Node.js)
-      # This handles the API logic and DB connection
+      # CONTAINER 2: BACKEND (Node.js + AI Chatbot)
+      # This handles API, Database, Redis, and AI Logic
       # -----------------------------------------------------
       - name: backend
         # UPDATE THIS: This image must be built from your 'backend/' folder
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-backend:latest
+        imagePullPolicy: Always # Ensures we always get the latest build
         ports:
         - containerPort: 3000
           protocol: TCP
         env:
         - name: PORT
           value: "3000"
+        
+        # --- DATABASE CONFIG ---
         - name: DB_HOST
-          value: "postgresql" # Ensure this matches your Service Name for Postgres
+          value: "postgresql" 
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: postgresql # This secret is auto-created by OpenShift when adding DB
+              name: postgresql
               key: database-user
         - name: DB_PASSWORD
           valueFrom:
@@ -88,13 +92,23 @@ spec:
               key: database-name
         - name: JWT_SECRET
           value: "replace_this_with_a_secure_random_string"
+
+        # --- CHATBOT & REDIS CONFIG (NEW) ---
+        - name: REDIS_URL
+          value: "redis://redis-stack:6379"
+        # Fixes 'Permission Denied' when AI tries to download models
+        - name: XDG_CACHE_HOME
+          value: "/tmp"
+
+        # --- RESOURCES (INCREASED FOR AI MODEL) ---
         resources:
           limits:
-            cpu: 200m
-            memory: 256Mi
+            cpu: "1"        # 1 Full Core for AI processing
+            memory: 1Gi     # 1GB RAM to load the model
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 500m
+            memory: 512Mi
+        
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
