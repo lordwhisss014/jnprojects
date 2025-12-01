@@ -1,11 +1,12 @@
-FROM node:18-alpine
+# CHANGE: Use 'slim' instead of 'alpine' for AI compatibility (glibc)
+FROM node:18-slim
+
 WORKDIR /usr/src/app
 
 # Copy package.json
 COPY package*.json ./
 
-# FIX: Use 'npm install' instead of 'npm ci'
-# 'npm install' will generate the missing lock file automatically.
+# Install dependencies
 RUN npm install
 
 # Copy the rest of the backend code
