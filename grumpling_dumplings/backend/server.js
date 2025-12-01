@@ -5,6 +5,9 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// --- NEW: Import Chatbot Logic ---
+const { initChatbot, searchMenu } = require('./chatbot');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -53,8 +56,11 @@ const initDb = async () => {
   }
 };
 
-// Run init on startup
+// Run DB init
 initDb();
+
+// --- NEW: Run Chatbot Init (Redis + AI) ---
+initChatbot();
 
 // --- AUTHENTICATION ROUTES ---
 
@@ -154,8 +160,38 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   }
 });
 
+// --- NEW: CHATBOT ROUTE ---
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ error: "Message required" });
+
+        console.log(`Processing chat: "${message}"`);
+
+        // 1. Search for relevant menu items using Redis Vector Search
+        const results = await searchMenu(message);
+
+        // 2. Format a simple response
+        let reply = "";
+        
+        if (results.length > 0) {
+            reply = "Here are some items you might like based on your request:";
+            results.forEach(item => {
+                reply += `\n- ${item.name} (₱${item.price}): ${item.description}`;
+            });
+        } else {
+            reply = "I couldn't find any specific dumplings matching that description. Try asking for 'shrimp', 'pork', or 'steamed' items.";
+        }
+
+        res.json({ reply, results }); 
+    } catch (err) {
+        console.error("Chat Error:", err);
+        res.status(500).json({ error: "Failed to process chat" });
+    }
+});
+
 // Start Server
-// CRITICAL FIX: Added '0.0.0.0' to ensure IPv4 binding
+// CRITICAL FIX: Kept '0.0.0.0' to ensure IPv4 binding in OpenShift
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API running on port ${PORT}`);
 });

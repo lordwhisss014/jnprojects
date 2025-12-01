@@ -1,20 +1,22 @@
 {
-    "name": "grumbling-dumpling-backend",
-    "version": "1.0.0",
-    "description": "API for Grumbling Dumpling",
-    "main": "server.js",
-    "scripts": {
-      "start": "node server.js"
-    },
-    "dependencies": {
-      "bcryptjs": "^2.4.3",
-      "cors": "^2.8.5",
-      "dotenv": "^16.0.3",
-      "express": "^4.18.2",
-      "jsonwebtoken": "^9.0.0",
-      "pg": "^8.10.0"
-    },
-    "engines": {
-      "node": ">=18.0.0"
-    }
+  "name": "grumbling-dumpling-backend",
+  "version": "1.0.0",
+  "description": "API for Grumbling Dumpling",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.14.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.10.0",
+    "redis": "^4.6.10"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
+}

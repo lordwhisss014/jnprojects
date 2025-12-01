@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grumbling Dumpling - Frozen Premium Dimsum</title>
     <style>
+        /* --- ORIGINAL STYLES --- */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -19,338 +20,150 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .logo {
-            max-width: 150px;
-            height: auto;
-        }
-        h1 {
-            color: #d32f2f;
-            font-size: 2.5em;
-            margin-top: 10px;
-            text-transform: uppercase;
-        }
-        h2 {
-            color: #555;
-            font-size: 1.8em;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            margin-top: 30px;
-        }
-        .menu-section {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .menu-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .menu-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px dotted #ccc;
-        }
-        .menu-item:last-child {
-            border-bottom: none;
-        }
-        .item-name {
-            font-weight: bold;
-            flex: 1;
-        }
-        .item-price {
-            color: #d32f2f;
-            font-weight: bold;
-            margin: 0 15px;
-        }
-        .notes, .contact-info, .order-info {
-            font-size: 0.9em;
-            line-height: 1.6;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        .notes ul, .contact-info ul, .order-info ul {
-            list-style: disc;
-            padding-left: 20px;
-            margin: 0;
-        }
-        .notes li, .contact-info li, .order-info li {
-            margin-bottom: 5px;
-        }
-        .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 40px;
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-        }
-        .image-gallery img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-        }
-        .image-gallery figure {
-            margin: 0;
-            text-align: center;
-        }
-        .image-gallery figcaption {
-            font-size: 0.8em;
-            margin-top: 5px;
-            color: #666;
-        }
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            font-size: 0.8em;
-            color: #777;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
+        header { text-align: center; margin-bottom: 40px; }
+        .logo { max-width: 150px; height: auto; }
+        h1 { color: #d32f2f; font-size: 2.5em; margin-top: 10px; text-transform: uppercase; }
+        h2 { color: #555; font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        .menu-section { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 30px; }
+        .menu-list { list-style: none; padding: 0; margin: 0; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dotted #ccc; }
+        .menu-item:last-child { border-bottom: none; }
+        .item-name { font-weight: bold; flex: 1; }
+        .item-price { color: #d32f2f; font-weight: bold; margin: 0 15px; }
+        .notes, .contact-info, .order-info { font-size: 0.9em; line-height: 1.6; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+        .notes ul, .contact-info ul, .order-info ul { list-style: disc; padding-left: 20px; margin: 0; }
+        .notes li, .contact-info li, .order-info li { margin-bottom: 5px; }
+        .image-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; }
+        .image-gallery img { max-width: 100%; height: auto; border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+        .image-gallery figure { margin: 0; text-align: center; }
+        .image-gallery figcaption { font-size: 0.8em; margin-top: 5px; color: #666; }
+        footer { text-align: center; margin-top: 50px; font-size: 0.8em; color: #777; padding-top: 20px; border-top: 1px solid #eee; }
 
         /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 30px;
-            border: 1px solid #888;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 30px; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
         .close:hover { color: #000; }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #d32f2f;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        .btn-primary {
-            background-color: #d32f2f;
-            color: white;
-            width: 100%;
-        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
+        .form-group input:focus { outline: none; border-color: #d32f2f; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        .btn-primary { background-color: #d32f2f; color: white; width: 100%; }
         .btn-primary:hover { background-color: #b71c1c; }
-        .btn-secondary {
-            background-color: #757575;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .btn-secondary:hover { background-color: #616161; }
-        .btn-cart {
-            background-color: #ff6b6b;
-            color: white;
-            padding: 8px 15px;
-            font-size: 14px;
-        }
+        .btn-cart { background-color: #ff6b6b; color: white; padding: 8px 15px; font-size: 14px; }
         .btn-cart:hover { background-color: #ff5252; }
-        .link-btn {
-            background: none;
-            border: none;
-            color: #d32f2f;
-            cursor: pointer;
-            text-decoration: underline;
-            font-size: 14px;
-            padding: 5px;
-        }
+        .link-btn { background: none; border: none; color: #d32f2f; cursor: pointer; text-decoration: underline; font-size: 14px; padding: 5px; }
         .link-btn:hover { color: #b71c1c; }
-        .text-center {
-            text-align: center;
-        }
-        .error-message {
-            color: #f44336;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .success-message {
-            color: #4caf50;
-            font-size: 14px;
-            margin-top: 5px;
-        }
+        .text-center { text-align: center; }
+        .error-message { color: #f44336; font-size: 14px; margin-top: 5px; }
+        .success-message { color: #4caf50; font-size: 14px; margin-top: 5px; }
         
         /* Cart Styles */
-        .cart-icon {
+        .cart-icon { position: fixed; top: 20px; right: 20px; background-color: #d32f2f; color: white; padding: 15px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 999; font-size: 24px; }
+        .cart-badge { position: absolute; top: -5px; right: -5px; background-color: #ff9800; color: white; border-radius: 50%; padding: 5px 8px; font-size: 12px; font-weight: bold; }
+        .cart-panel { position: fixed; right: -450px; top: 0; width: 450px; max-width: 100%; height: 100%; background-color: white; box-shadow: -2px 0 10px rgba(0,0,0,0.2); transition: right 0.3s; z-index: 1001; overflow-y: auto; }
+        .cart-panel.open { right: 0; }
+        .cart-header { background-color: #d32f2f; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .cart-items { padding: 20px; min-height: 300px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; gap: 10px; }
+        .cart-item-info { flex: 1; }
+        .cart-item-qty { display: flex; align-items: center; gap: 10px; }
+        .qty-btn { background-color: #f0f0f0; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        .qty-btn:hover { background-color: #e0e0e0; }
+        .cart-total { padding: 20px; border-top: 2px solid #ddd; font-size: 18px; font-weight: bold; }
+        
+        /* User Info Styles */
+        .user-info { position: fixed; top: 20px; left: 20px; background-color: white; padding: 10px 20px; border-radius: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 999; display: flex; align-items: center; gap: 10px; }
+        .logout-btn { background-color: #f44336; color: white; border: none; padding: 5px 15px; border-radius: 15px; cursor: pointer; margin-left: 10px; }
+        .login-btn { background-color: #d32f2f; color: white; border: none; padding: 5px 15px; border-radius: 15px; cursor: pointer; margin-left: 10px; }
+
+        /* --- NEW: CHATBOT STYLES --- */
+        .chat-widget-btn {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
-            background-color: #d32f2f;
+            background-color: #007bff;
             color: white;
             padding: 15px;
             border-radius: 50%;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            z-index: 999;
+            z-index: 998;
             font-size: 24px;
+            transition: transform 0.2s;
         }
-        .cart-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #ff9800;
-            color: white;
-            border-radius: 50%;
-            padding: 5px 8px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .cart-panel {
-            position: fixed;
-            right: -450px;
-            top: 0;
-            width: 450px;
-            max-width: 100%;
-            height: 100%;
-            background-color: white;
-            box-shadow: -2px 0 10px rgba(0,0,0,0.2);
-            transition: right 0.3s;
-            z-index: 1001;
-            overflow-y: auto;
-        }
-        .cart-panel.open { right: 0; }
-        .cart-header {
-            background-color: #d32f2f;
-            color: white;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .cart-items {
-            padding: 20px;
-            min-height: 300px;
-        }
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            gap: 10px;
-        }
-        .cart-item-info {
-            flex: 1;
-        }
-        .cart-item-qty {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .qty-btn {
-            background-color: #f0f0f0;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-        .qty-btn:hover { background-color: #e0e0e0; }
-        .cart-total {
-            padding: 20px;
-            border-top: 2px solid #ddd;
-            font-size: 18px;
-            font-weight: bold;
-        }
+        .chat-widget-btn:hover { transform: scale(1.1); }
         
-        /* Updated User Info Styles */
-        .user-info {
+        .chat-window {
+            display: none;
             position: fixed;
-            top: 20px;
-            left: 20px;
+            bottom: 80px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
             background-color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-radius: 10px;
             z-index: 999;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-window.open { display: flex; }
+        
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+        }
+        .message {
+            margin-bottom: 10px;
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .message.bot { background-color: #e3e3e3; color: #333; align-self: flex-start; border-bottom-left-radius: 0; }
+        .message.user { background-color: #007bff; color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 0; }
+        
+        .chat-input-area {
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            display: flex;
             gap: 10px;
+            background-color: white;
         }
-        
-        .logout-btn {
-            background-color: #f44336;
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        .chat-input-area button {
+            background-color: #007bff;
             color: white;
             border: none;
-            padding: 5px 15px;
-            border-radius: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
             cursor: pointer;
-            margin-left: 10px;
         }
-        
-        .login-btn {
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 15px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .logout-btn:hover, .login-btn:hover { opacity: 0.9; }
+        .typing-indicator { font-size: 12px; color: #888; margin-left: 10px; display: none; }
 
         @media (max-width: 600px) {
-            .cart-panel {
-                width: 100%;
-                right: -100%;
-            }
-            .user-info {
-                font-size: 0.8em;
-                padding: 8px 15px;
-                top: 10px;
-                left: 10px;
-            }
+            .cart-panel { width: 100%; right: -100%; }
+            .chat-window { width: 90%; right: 5%; bottom: 70px; }
         }
     </style>
 </head>
@@ -369,6 +182,25 @@
     <div class="cart-icon" onclick="toggleCart()">
         🛒
         <span class="cart-badge" id="cartBadge">0</span>
+    </div>
+
+    <div class="chat-widget-btn" onclick="toggleChat()">💬</div>
+    
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <span>Dumpling Assistant 🤖</span>
+            <span style="cursor: pointer;" onclick="toggleChat()">&times;</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                Hello! I am your AI assistant. Ask me anything about our menu! (e.g., "Do you have shrimp?" or "Vegetarian options")
+            </div>
+        </div>
+        <div class="typing-indicator" id="typingIndicator">AI is thinking...</div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="handleChatEnter(event)">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
     </div>
 
     <div class="cart-panel" id="cartPanel">
@@ -442,7 +274,7 @@
 
     <div class="container">
         <header>
-            <img src="./src/logo.png" alt="Grumbling Dumpling Logo" class="logo">
+            <img src="logo.png" alt="Grumbling Dumpling Logo" class="logo">
             <h1>Frozen Premium Dimsum</h1>
         </header>
 
@@ -481,7 +313,6 @@
                         <button class="btn btn-cart" onclick="addToCart('Chili Sauce (100ml)', 125)">Add to Cart</button>
                     </li>
                 </ul>
-
                 <h2>Made to Order <br> (Min of 5 per kind)</h2>
                 <ul class="menu-list">
                     <li class="menu-item">
@@ -489,78 +320,16 @@
                         <span class="item-price">₱335</span>
                         <button class="btn btn-cart" onclick="addToCart('Pork & Shrimp Wanton (12 Pcs)', 335)">Add to Cart</button>
                     </li>
-                    <li class="menu-item">
-                        <span class="item-name">Xiao Long Bao <br> 12 Pcs</span>
-                        <span class="item-price">₱335</span>
-                        <button class="btn btn-cart" onclick="addToCart('Xiao Long Bao (12 Pcs)', 335)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Kuchay Dumpling <br> 12 Pcs</span>
-                        <span class="item-price">₱350</span>
-                        <button class="btn btn-cart" onclick="addToCart('Kuchay Dumpling (12 Pcs)', 350)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Taosi Spareribs <br> Approx. 500g</span>
-                        <span class="item-price">₱370</span>
-                        <button class="btn btn-cart" onclick="addToCart('Taosi Spareribs (500g)', 370)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Chicken Feet <br> Approx. 500g</span>
-                        <span class="item-price">₱250</span>
-                        <button class="btn btn-cart" onclick="addToCart('Chicken Feet (500g)', 250)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Taipao Bola <br> 1 Pc</span>
-                        <span class="item-price">₱150</span>
-                        <button class="btn btn-cart" onclick="addToCart('Taipao Bola (1 Pc)', 150)">Add to Cart</button>
-                    </li>
-                </ul>
-
-                <h2>More Dimsum Favorites</h2>
-                <ul class="menu-list">
-                    <li class="menu-item">
-                        <span class="item-name">Hakaw <br> 12 Pcs</span>
-                        <span class="item-price">₱335</span>
-                        <button class="btn btn-cart" onclick="addToCart('Hakaw (12 Pcs)', 335)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Beancurd Roll <br> 7 Pcs</span>
-                        <span class="item-price">₱295</span>
-                        <button class="btn btn-cart" onclick="addToCart('Beancurd Roll (7 Pcs)', 295)">Add to Cart</button>
-                    </li>
-                    <li class="menu-item">
-                        <span class="item-name">Special Japanese Siomai <br> 12 Pcs</span>
-                        <span class="item-price">₱335</span>
-                        <button class="btn btn-cart" onclick="addToCart('Special Japanese Siomai (12 Pcs)', 335)">Add to Cart</button>
-                    </li>
-                </ul>
+                    </ul>
             </section>
 
             <section class="image-gallery">
-                <figure>
-                    <img src="./src/xiao longbao.png" alt="Xiao Long Bao">
-                    <figcaption>Xiao Long Bao</figcaption>
-                </figure>
-                <figure>
-                    <img src="./src/kikiam.png" alt="Special Kikiam">
-                    <figcaption>Special Kikiam</figcaption>
-                </figure>
-                <figure>
-                    <img src="./src/hakaw.png" alt="Hakaw">
-                    <figcaption>Hakaw</figcaption>
-                </figure>
-                <figure>
-                    <img src="./src/siopao.png" alt="Siopao">
-                    <figcaption>Siopao</figcaption>
-                </figure>
-                <figure>
-                    <img src="./src/spareribs.png" alt="Spareribs">
-                    <figcaption>Spareribs</figcaption>
-                </figure>
-                <figure>
-                    <img src="./src/roll.png" alt="Beancurd Roll">
-                    <figcaption>Beancurd Roll</figcaption>
-                </figure>
+                <figure><img src="xiao longbao.png" alt="Xiao Long Bao"><figcaption>Xiao Long Bao</figcaption></figure>
+                <figure><img src="kikiam.png" alt="Special Kikiam"><figcaption>Special Kikiam</figcaption></figure>
+                <figure><img src="hakaw.png" alt="Hakaw"><figcaption>Hakaw</figcaption></figure>
+                <figure><img src="siopao.png" alt="Siopao"><figcaption>Siopao</figcaption></figure>
+                <figure><img src="spareribs.png" alt="Spareribs"><figcaption>Spareribs</figcaption></figure>
+                <figure><img src="roll.png" alt="Beancurd Roll"><figcaption>Beancurd Roll</figcaption></figure>
             </section>
         </main>
 
@@ -569,7 +338,6 @@
                 <li>Prices are subject to change without prior notice.</li>
             </ul>
         </div>
-
         <div class="contact-info">
             <h2>Contact Us</h2>
             <ul>
@@ -577,7 +345,6 @@
                 <li>CP/Viber/Whatsapp: +63917 812 4577</li>
             </ul>
         </div>
-
         <div class="order-info">
             <h2>Ordering Details</h2>
             <ul>
@@ -586,14 +353,11 @@
                 <li>Payment: GCash or Bank Transfer</li>
             </ul>
         </div>
-
-        <footer>
-            &copy; Grumbling Dumpling. All rights reserved.
-        </footer>
+        <footer>&copy; Grumbling Dumpling. All rights reserved.</footer>
     </div>
 
     <script>
-        // API Configuration
+        // API Configuration (Relative path for Nginx proxy)
         const API_URL = '/api';
 
         // Cart state
@@ -608,20 +372,18 @@
             const user = localStorage.getItem('currentUser');
             
             if (token && user) {
-                // User IS logged in
                 authToken = token;
                 currentUser = JSON.parse(user);
                 isLoggedIn = true;
                 updateUserInterface();
                 loadCart();
             } else {
-                // User is a GUEST (Do NOT show modal automatically)
                 isLoggedIn = false;
                 updateUserInterface();
             }
         };
 
-        // UI Update Function - Toggles between Guest and User view in top bar
+        // UI Update Function
         function updateUserInterface() {
             const loggedInPanel = document.getElementById('loggedInPanel');
             const guestPanel = document.getElementById('guestPanel');
@@ -637,7 +399,7 @@
             }
         }
 
-        // Show/Hide Modals
+        // --- AUTH & MODAL FUNCTIONS ---
         function showLogin() {
             document.getElementById('registerModal').style.display = 'none';
             document.getElementById('loginModal').style.display = 'block';
@@ -651,7 +413,6 @@
         }
 
         function closeAuthModals() {
-            // Unconditional close - allows guests to close the window
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('registerModal').style.display = 'none';
         }
@@ -662,38 +423,27 @@
             document.getElementById('registerSuccess').textContent = '';
         }
 
-        // Register handler
+        // --- AUTH HANDLERS ---
         async function handleRegister(event) {
             event.preventDefault();
             clearMessages();
-
             const username = document.getElementById('regUsername').value;
             const email = document.getElementById('regEmail').value;
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
 
-            // Validation
             if (password !== confirmPassword) {
                 document.getElementById('registerError').textContent = 'Passwords do not match';
-                return;
-            }
-
-            if (password.length < 6) {
-                document.getElementById('registerError').textContent = 'Password must be at least 6 characters';
                 return;
             }
 
             try {
                 const response = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, email, password })
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
                     document.getElementById('registerSuccess').textContent = 'Registration successful! Please login.';
                     document.getElementById('registerForm').reset();
@@ -702,57 +452,40 @@
                     document.getElementById('registerError').textContent = data.error || 'Registration failed';
                 }
             } catch (error) {
-                console.error('Registration error:', error);
                 document.getElementById('registerError').textContent = 'Network error. Please try again.';
             }
         }
 
-        // Login handler
         async function handleLogin(event) {
             event.preventDefault();
             clearMessages();
-
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
 
             try {
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
                     authToken = data.token;
-                    currentUser = { 
-                        id: data.user.id,
-                        username: data.user.username, 
-                        email: data.user.email 
-                    };
-                    
+                    currentUser = { id: data.user.id, username: data.user.username, email: data.user.email };
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
                     isLoggedIn = true;
-                    updateUserInterface(); // Update the UI
+                    updateUserInterface();
                     closeAuthModals();
                     loadCart();
-                    
-                    alert('Login successful! Welcome to Grumpling Dumpling!');
                 } else {
                     document.getElementById('loginError').textContent = data.error || 'Login failed';
                 }
             } catch (error) {
-                console.error('Login error:', error);
                 document.getElementById('loginError').textContent = 'Network error. Please try again.';
             }
         }
 
-        // Logout
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 localStorage.removeItem('authToken');
@@ -762,22 +495,19 @@
                 isLoggedIn = false;
                 currentUser = null;
                 cart = [];
-                updateUserInterface(); // Reset UI to Guest mode
+                updateUserInterface();
                 updateCart();
                 document.getElementById('cartPanel').classList.remove('open');
             }
         }
 
-        // Add to cart
+        // --- CART FUNCTIONS ---
         function addToCart(name, price) {
-            // === MODIFICATION: Check login status here ===
             if (!isLoggedIn) {
                 showLogin();
                 document.getElementById('loginError').textContent = "Please login to add items to your cart.";
                 return;
             }
-            // ==============================================
-
             const existingItem = cart.find(item => item.name === name);
             if (existingItem) {
                 existingItem.quantity++;
@@ -786,14 +516,11 @@
             }
             saveCart();
             updateCart();
-            
-            // Show feedback
             const cartIcon = document.querySelector('.cart-icon');
             cartIcon.style.transform = 'scale(1.2)';
             setTimeout(() => cartIcon.style.transform = 'scale(1)', 200);
         }
 
-        // Update cart display
         function updateCart() {
             const cartItems = document.getElementById('cartItems');
             const cartBadge = document.getElementById('cartBadge');
@@ -828,13 +555,11 @@
                     </div>
                 `;
             });
-
             cartItems.innerHTML = html;
             cartBadge.textContent = totalItems;
             cartTotal.textContent = totalPrice.toFixed(2);
         }
 
-        // Update quantity
         function updateQuantity(index, change) {
             cart[index].quantity += change;
             if (cart[index].quantity <= 0) {
@@ -844,25 +569,20 @@
             updateCart();
         }
 
-        // Remove item
         function removeItem(index) {
             cart.splice(index, 1);
             saveCart();
             updateCart();
         }
 
-        // Toggle cart panel
         function toggleCart() {
-            const cartPanel = document.getElementById('cartPanel');
-            cartPanel.classList.toggle('open');
+            document.getElementById('cartPanel').classList.toggle('open');
         }
 
-        // Save cart to localStorage
         function saveCart() {
             localStorage.setItem('cart', JSON.stringify(cart));
         }
 
-        // Load cart from localStorage
         function loadCart() {
             const savedCart = localStorage.getItem('cart');
             if (savedCart) {
@@ -871,15 +591,12 @@
             }
         }
 
-        // Checkout
         async function checkout() {
             if (cart.length === 0) {
                 alert('Your cart is empty!');
                 return;
             }
-
             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
             try {
                 const response = await fetch(`${API_URL}/orders`, {
                     method: 'POST',
@@ -887,23 +604,11 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({
-                        items: cart,
-                        total: total
-                    })
+                    body: JSON.stringify({ items: cart, total: total })
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    let orderSummary = `Order #${data.orderId} placed successfully!\n\n`;
-                    orderSummary += 'Order Summary:\n\n';
-                    cart.forEach(item => {
-                        orderSummary += `${item.name} x${item.quantity} - ₱${(item.price * item.quantity).toFixed(2)}\n`;
-                    });
-                    orderSummary += `\nTotal: ₱${total.toFixed(2)}\n\nThank you for your order!\nWe will contact you shortly for payment and delivery details.`;
-                    alert(orderSummary);
-                    
+                    alert(`Order #${data.orderId} placed successfully!\nWe will contact you shortly.`);
                     cart = [];
                     saveCart();
                     updateCart();
@@ -912,16 +617,75 @@
                     alert('Failed to place order. Please try again.');
                 }
             } catch (error) {
-                console.error('Checkout error:', error);
                 alert('Network error. Please try again.');
             }
+        }
+
+        // --- NEW: CHATBOT FUNCTIONS ---
+        function toggleChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.classList.toggle('open');
+            // Auto focus input when opened
+            if(chatWindow.classList.contains('open')) {
+                document.getElementById('chatInput').focus();
+            }
+        }
+
+        function handleChatEnter(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Display user message
+            addMessage(message, 'user');
+            input.value = '';
+
+            // Show typing indicator
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                indicator.style.display = 'none';
+
+                if (response.ok) {
+                    addMessage(data.reply, 'bot');
+                } else {
+                    addMessage("Sorry, I'm having trouble thinking right now.", 'bot');
+                }
+            } catch (error) {
+                indicator.style.display = 'none';
+                addMessage("Network error. Please check your connection.", 'bot');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            // Convert newlines to <br> for formatting
+            div.innerHTML = text.replace(/\n/g, '<br>');
+            chatMessages.appendChild(div);
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         // Close modals when clicking outside
         window.onclick = function(event) {
             const loginModal = document.getElementById('loginModal');
             const registerModal = document.getElementById('registerModal');
-            
             if (event.target === loginModal || event.target === registerModal) {
                 closeAuthModals();
             }
