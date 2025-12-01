@@ -1,7 +1,8 @@
 const { createClient, SchemaFieldTypes, VectorAlgorithms } = require('redis');
-const { pipeline } = require('@xenova/transformers');
 
-// Configuration
+// --- DELETE THIS LINE: ---
+// const { pipeline } = require('@xenova/transformers'); 
+
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis-stack:6379';
 const INDEX_NAME = 'menu-index';
 
@@ -15,8 +16,14 @@ async function initChatbot() {
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
-    // 2. Load local AI model (runs inside the pod, no API key needed)
+    // 2. Load local AI model (Dynamic Import Fix)
+    console.log("Loading AI library...");
+    
+    // --- FIX: Import the library dynamically here ---
+    const { pipeline } = await import('@xenova/transformers');
+    
     console.log("Loading AI model...");
+    // Using a smaller, quantized model to save memory
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
@@ -29,7 +36,7 @@ async function initChatbot() {
                 type: SchemaFieldTypes.VECTOR,
                 ALGORITHM: VectorAlgorithms.HNSW,
                 TYPE: 'FLOAT32',
-                DIM: 384, // Dimension matches the all-MiniLM-L6-v2 model
+                DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
             }
         }, {
@@ -37,7 +44,7 @@ async function initChatbot() {
             PREFIX: 'item:'
         });
         console.log("Vector Index created.");
-        await seedData(); // Seed data only if index was just created
+        await seedData();
     } catch (e) {
         if (e.message === 'Index already exists') {
             console.log("Index already exists, skipping creation.");
@@ -61,7 +68,9 @@ async function seedData() {
         { name: "Special Kikiam", price: 370, description: "Fried meat roll wrapped in bean curd skin." },
         { name: "Siopao Asado", price: 315, description: "Steamed buns filled with sweet bbq pork." },
         { name: "Hakaw", price: 335, description: "Crystal shrimp dumplings." },
-        { name: "Chicken Feet", price: 250, description: "Braised chicken feet in savory sauce." }
+        { name: "Chicken Feet", price: 250, description: "Braised chicken feet in savory sauce." },
+        { name: "Beancurd Roll", price: 295, description: "Vegetarian friendly tofu skin rolls." },
+        { name: "Xiao Long Bao", price: 335, description: "Soup dumplings with pork filling." }
     ];
 
     console.log("Seeding menu data...");
@@ -70,7 +79,7 @@ async function seedData() {
         // Store in Redis as JSON
         await redisClient.json.set(`item:${item.name.replace(/\s/g, '')}`, '$', {
             ...item,
-            embedding: Array.from(embedding) // Convert Float32Array to standard array
+            embedding: Array.from(embedding)
         });
     }
     console.log("Menu data seeded!");
@@ -78,6 +87,11 @@ async function seedData() {
 
 // Search Function
 async function searchMenu(userQuery) {
+    // Ensure embedder is loaded before searching
+    if (!embedder) {
+        throw new Error("AI Model is not ready yet. Please wait a moment.");
+    }
+
     const vector = await getEmbedding(userQuery);
     
     // Perform Vector Search (KNN)
