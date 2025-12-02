@@ -24,14 +24,14 @@ async function initChatbot() {
     console.log("⚠️ FLUSHING DB...");
     await redisClient.flushDb();
 
-    // Create Index
+    // Create Index using FLAT algorithm (Best for small datasets)
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT,
+                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -50,6 +50,7 @@ async function initChatbot() {
 
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
+    // Convert directly to standard Array
     return Array.from(response.data).map(Number);
 }
 
@@ -77,15 +78,13 @@ async function seedData() {
 async function searchMenu(userQuery) {
     if (!embedder) throw new Error("AI Model not ready");
 
-    // Generate Vector
     const vectorRaw = await getEmbedding(userQuery);
-    console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`); // DEBUG: Must be 384
+    console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`);
 
-    // Convert to Float32 Buffer
     const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
 
     try {
-        // Execute Search
+        // Updated Search Query for FLAT algorithm
         const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
             PARAMS: { BLOB: vectorBlob },
             SORTBY: 'score',
