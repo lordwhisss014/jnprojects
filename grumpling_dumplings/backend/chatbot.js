@@ -7,16 +7,12 @@ let redisClient;
 let embedder;
 
 async function initChatbot() {
-    // 1. Connect to Redis
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
-    // 2. Load AI Library (Dynamic Import for ESM compatibility)
     console.log("Loading AI library...");
     const { pipeline, env } = await import('@xenova/transformers');
-    
-    // FIX: Force cache to /tmp to avoid OpenShift permission errors
     env.cacheDir = '/tmp/transformers_cache';
     env.allowLocalModels = false;
     
@@ -24,21 +20,18 @@ async function initChatbot() {
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // --- NUCLEAR FIX: WIPE DATABASE ---
-    // This deletes old broken indexes/data so we start fresh.
-    // TODO: Comment this out after the chatbot works!
-    console.log("⚠️ FLUSHING REDIS DATABASE TO FIX CORRUPTED INDEX...");
-    await redisClient.flushDb(); 
-    // ----------------------------------
+    // FLUSH DB to ensure clean slate for this test
+    console.log("⚠️ FLUSHING DB...");
+    await redisClient.flushDb();
 
-    // 3. Create Vector Index
+    // Create Index
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT, // FLAT is better for small datasets
+                ALGORITHM: VectorAlgorithms.FLAT,
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -49,25 +42,17 @@ async function initChatbot() {
         });
         console.log("Vector Index created.");
     } catch (e) {
-        if (e.message === 'Index already exists') {
-            console.log("Index already exists.");
-        } else {
-            console.error("Index creation error:", e);
-        }
+        if (e.message !== 'Index already exists') console.error(e);
     }
 
-    // 4. Force Seed Data
     await seedData();
 }
 
-// Helper: Convert Text to Vector Array
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    // FIX: Convert Float32Array to standard JavaScript Array for JSON storage
     return Array.from(response.data).map(Number);
 }
 
-// Helper: Seed Menu Items
 async function seedData() {
     const menuItems = [
         { name: "Pork and Shrimp Siomai", price: 285, description: "Classic dimsum with pork and shrimp filling." },
@@ -84,42 +69,31 @@ async function seedData() {
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
         const key = `item:${item.name.replace(/\s/g, '')}`;
-        
-        await redisClient.json.set(key, '$', {
-            ...item,
-            embedding: embedding
-        });
+        await redisClient.json.set(key, '$', { ...item, embedding });
     }
-    console.log(`Menu data seeded! (${menuItems.length} items)`);
+    console.log("Menu data seeded! (8 items)");
 }
 
-// Helper: Perform Search
 async function searchMenu(userQuery) {
-    if (!embedder) {
-        throw new Error("AI Model is not ready yet.");
-    }
+    if (!embedder) throw new Error("AI Model not ready");
 
-    // 1. Generate Vector for the User's Question
-    const vector = await getEmbedding(userQuery);
-    
-    // 2. Convert to Buffer for Redis Query
-    const vectorBlob = Buffer.from(new Float32Array(vector).buffer);
+    // Generate Vector
+    const vectorRaw = await getEmbedding(userQuery);
+    console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`); // DEBUG: Must be 384
 
-    console.log(`Search Query: "${userQuery}"`);
+    // Convert to Float32 Buffer
+    const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
 
     try {
-        // 3. Execute Vector Search (K-Nearest Neighbors)
+        // Execute Search
         const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
-            PARAMS: {
-                BLOB: vectorBlob
-            },
+            PARAMS: { BLOB: vectorBlob },
             SORTBY: 'score',
             DIALECT: 2,
             RETURN: ['name', 'price', 'description', 'score']
         });
 
         console.log(`Found ${results.total} matches.`);
-        
         return results.documents.map(doc => ({
             name: doc.value.name,
             price: doc.value.price,
