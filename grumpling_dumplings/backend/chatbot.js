@@ -7,32 +7,28 @@ let redisClient;
 let embedder;
 
 async function initChatbot() {
-    // 1. Connect to Redis
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
-    // 2. Load AI Model
     console.log("Loading AI library...");
     const { pipeline, env } = await import('@xenova/transformers');
     
-    // Fix permissions
     env.cacheDir = '/tmp/transformers_cache';
     env.allowLocalModels = false;
-    console.log("AI Cache Directory set to:", env.cacheDir);
-
+    
     console.log("Loading AI model...");
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // 3. Create Index (Use FLAT algorithm for accuracy on small data)
+    // Create Index
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT
+                ALGORITHM: VectorAlgorithms.FLAT,
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -43,43 +39,39 @@ async function initChatbot() {
         });
         console.log("Vector Index created.");
     } catch (e) {
-        if (e.message === 'Index already exists') {
-            // console.log("Index exists");
-        } else {
-            console.error("Index creation error:", e);
-        }
+        // Ignore "Index already exists"
     }
 
-    // 4. Check & Seed Data (Fixed for Node-Redis v4+)
+    // Check Data
     try {
         const info = await redisClient.ft.info(INDEX_NAME);
-        
-        // Handle different response types from Redis
         let docCount = 0;
+        
+        // Robust check for doc count
         if (typeof info === 'object' && info.num_docs) {
              docCount = parseInt(info.num_docs);
         } else if (Array.isArray(info)) {
-             // Fallback for older Redis versions
              const idx = info.indexOf('num_docs');
              if (idx > -1) docCount = parseInt(info[idx + 1]);
         }
 
         console.log(`Index Status: Contains ${docCount} documents.`);
 
-        if (docCount == 0) {
+        // Force re-seed if 0 docs (even if keys exist, they might be malformed)
+        if (docCount === 0) {
             console.log("Index is empty! Seeding now...");
             await seedData();
         }
     } catch (err) {
         console.error("Error checking index info:", err);
-        // Fallback: If check fails, try seeding anyway to be safe
         await seedData(); 
     }
 }
 
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    return response.data;
+    // CRITICAL: Ensure we return a plain array, not Float32Array
+    return Array.from(response.data).map(Number);
 }
 
 async function seedData() {
@@ -95,13 +87,19 @@ async function seedData() {
     ];
 
     console.log("Seeding menu data...");
+    
+    // Clear existing data to fix potential bad formats
+    // Note: In production, use flushdb carefully. For dev, this ensures clean slate.
+    // await redisClient.flushDb(); 
+
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
         const key = `item:${item.name.replace(/\s/g, '')}`;
         
+        // Save to Redis
         await redisClient.json.set(key, '$', {
             ...item,
-            embedding: Array.from(embedding)
+            embedding: embedding // This is now guaranteed to be a plain array
         });
     }
     console.log("Menu data seeded!");
@@ -113,13 +111,15 @@ async function searchMenu(userQuery) {
     }
 
     const vector = await getEmbedding(userQuery);
+    // Convert to Float32Array Buffer for the Search Query (Redis requires Blob here)
+    const vectorBlob = Buffer.from(new Float32Array(vector).buffer);
+
     console.log(`Search Query: "${userQuery}"`);
 
     try {
-        // KNN Search
         const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
             PARAMS: {
-                BLOB: Buffer.from(new Float32Array(vector).buffer)
+                BLOB: vectorBlob
             },
             SORTBY: 'score',
             DIALECT: 2,
