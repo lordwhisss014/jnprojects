@@ -7,13 +7,16 @@ let redisClient;
 let embedder;
 
 async function initChatbot() {
+    // 1. Connect to Redis
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
+    // 2. Load AI Library (Dynamic Import for ESM compatibility)
     console.log("Loading AI library...");
     const { pipeline, env } = await import('@xenova/transformers');
     
+    // FIX: Force cache to /tmp to avoid OpenShift permission errors
     env.cacheDir = '/tmp/transformers_cache';
     env.allowLocalModels = false;
     
@@ -21,14 +24,21 @@ async function initChatbot() {
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // Create Index
+    // --- NUCLEAR FIX: WIPE DATABASE ---
+    // This deletes old broken indexes/data so we start fresh.
+    // TODO: Comment this out after the chatbot works!
+    console.log("⚠️ FLUSHING REDIS DATABASE TO FIX CORRUPTED INDEX...");
+    await redisClient.flushDb(); 
+    // ----------------------------------
+
+    // 3. Create Vector Index
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT,
+                ALGORITHM: VectorAlgorithms.FLAT, // FLAT is better for small datasets
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -39,41 +49,25 @@ async function initChatbot() {
         });
         console.log("Vector Index created.");
     } catch (e) {
-        // Ignore "Index already exists"
+        if (e.message === 'Index already exists') {
+            console.log("Index already exists.");
+        } else {
+            console.error("Index creation error:", e);
+        }
     }
 
-    // Check Data
-    try {
-        const info = await redisClient.ft.info(INDEX_NAME);
-        let docCount = 0;
-        
-        // Robust check for doc count
-        if (typeof info === 'object' && info.num_docs) {
-             docCount = parseInt(info.num_docs);
-        } else if (Array.isArray(info)) {
-             const idx = info.indexOf('num_docs');
-             if (idx > -1) docCount = parseInt(info[idx + 1]);
-        }
-
-        console.log(`Index Status: Contains ${docCount} documents.`);
-
-        // Force re-seed if 0 docs (even if keys exist, they might be malformed)
-        if (docCount === 0) {
-            console.log("Index is empty! Seeding now...");
-            await seedData();
-        }
-    } catch (err) {
-        console.error("Error checking index info:", err);
-        await seedData(); 
-    }
+    // 4. Force Seed Data
+    await seedData();
 }
 
+// Helper: Convert Text to Vector Array
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    // CRITICAL: Ensure we return a plain array, not Float32Array
+    // FIX: Convert Float32Array to standard JavaScript Array for JSON storage
     return Array.from(response.data).map(Number);
 }
 
+// Helper: Seed Menu Items
 async function seedData() {
     const menuItems = [
         { name: "Pork and Shrimp Siomai", price: 285, description: "Classic dimsum with pork and shrimp filling." },
@@ -87,36 +81,34 @@ async function seedData() {
     ];
 
     console.log("Seeding menu data...");
-    
-    // Clear existing data to fix potential bad formats
-    // Note: In production, use flushdb carefully. For dev, this ensures clean slate.
-    // await redisClient.flushDb(); 
-
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
         const key = `item:${item.name.replace(/\s/g, '')}`;
         
-        // Save to Redis
         await redisClient.json.set(key, '$', {
             ...item,
-            embedding: embedding // This is now guaranteed to be a plain array
+            embedding: embedding
         });
     }
-    console.log("Menu data seeded!");
+    console.log(`Menu data seeded! (${menuItems.length} items)`);
 }
 
+// Helper: Perform Search
 async function searchMenu(userQuery) {
     if (!embedder) {
         throw new Error("AI Model is not ready yet.");
     }
 
+    // 1. Generate Vector for the User's Question
     const vector = await getEmbedding(userQuery);
-    // Convert to Float32Array Buffer for the Search Query (Redis requires Blob here)
+    
+    // 2. Convert to Buffer for Redis Query
     const vectorBlob = Buffer.from(new Float32Array(vector).buffer);
 
     console.log(`Search Query: "${userQuery}"`);
 
     try {
+        // 3. Execute Vector Search (K-Nearest Neighbors)
         const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
             PARAMS: {
                 BLOB: vectorBlob
