@@ -11,18 +11,18 @@ async function initChatbot() {
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
+    // --- FIX: Configure Environment properly ---
     console.log("Loading AI library...");
-    
-    // --- CHANGE 1: Import 'env' alongside 'pipeline' ---
     const { pipeline, env } = await import('@xenova/transformers');
     
-    // --- CHANGE 2: Set cache directory to /tmp (Writable in OpenShift) ---
+    // Force cache to /tmp (Writable)
     env.cacheDir = '/tmp/transformers_cache';
-    env.allowLocalModels = false; // Force download to /tmp
-    
+    env.allowLocalModels = false;
+    console.log("AI Cache Directory set to:", env.cacheDir); // <--- DEBUG LOG
+
     console.log("Loading AI model...");
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    console.log("AI Model loaded successfully.");
+    console.log("AI Model loaded.");
 
     // Create Index
     try {
@@ -43,23 +43,26 @@ async function initChatbot() {
         console.log("Vector Index created.");
     } catch (e) {
         if (e.message === 'Index already exists') {
-            console.log("Index already exists.");
+            // console.log("Index exists."); 
         } else {
             console.error("Index creation error:", e);
         }
     }
 
-    // Check Data and Seed
+    // Check Index Info
     try {
-        const checkData = await redisClient.ft.search(INDEX_NAME, '*', { LIMIT: { from: 0, size: 1 } });
-        if (checkData.total === 0) {
-            console.log("Index is empty! Starting seeding process...");
+        const info = await redisClient.ft.info(INDEX_NAME);
+        // Find number of docs in the raw info array
+        const docCountIdx = info.indexOf('num_docs');
+        const docCount = info[docCountIdx + 1];
+        console.log(`Index Status: Contains ${docCount} documents.`);
+
+        if (docCount == 0) {
+            console.log("Index is empty! Seeding now...");
             await seedData();
-        } else {
-            console.log(`Index contains ${checkData.total} items. Skipping seed.`);
         }
     } catch (err) {
-        console.error("Error checking index data:", err);
+        console.error("Error checking index:", err);
     }
 }
 
@@ -83,7 +86,9 @@ async function seedData() {
     console.log("Seeding menu data...");
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
-        await redisClient.json.set(`item:${item.name.replace(/\s/g, '')}`, '$', {
+        // Remove spaces for key to match previous logic
+        const key = `item:${item.name.replace(/\s/g, '')}`;
+        await redisClient.json.set(key, '$', {
             ...item,
             embedding: Array.from(embedding)
         });
@@ -96,10 +101,11 @@ async function searchMenu(userQuery) {
         throw new Error("AI Model is not ready yet.");
     }
 
-    console.log(`Generating embedding for: "${userQuery}"`);
+    // Log the vector generation
     const vector = await getEmbedding(userQuery);
-    
-    console.log("Executing Vector Search...");
+    console.log(`Search Query: "${userQuery}" | Vector Size: ${vector.length}`);
+
+    // Perform Vector Search
     const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 3 @embedding $BLOB AS score]`, {
         PARAMS: {
             BLOB: Buffer.from(new Float32Array(vector).buffer)
@@ -110,7 +116,7 @@ async function searchMenu(userQuery) {
     });
 
     console.log(`Found ${results.total} matches.`);
-    
+
     return results.documents.map(doc => ({
         name: doc.value.name,
         price: doc.value.price,
