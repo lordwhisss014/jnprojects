@@ -11,58 +11,64 @@ async function initChatbot() {
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
-    // --- FIX: Configure Environment properly ---
     console.log("Loading AI library...");
     const { pipeline, env } = await import('@xenova/transformers');
     
-    // Force cache to /tmp (Writable)
+    // Force cache to /tmp
     env.cacheDir = '/tmp/transformers_cache';
     env.allowLocalModels = false;
-    console.log("AI Cache Directory set to:", env.cacheDir); // <--- DEBUG LOG
-
+    
     console.log("Loading AI model...");
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // Create Index
+    // 1. Create Index (Idempotent)
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.HNSW,
+                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT for small datasets (More accurate than HNSW)
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
             }
         }, {
             ON: 'JSON',
-            PREFIX: 'item:'
+            PREFIX: 'item:' // Ensure this matches keys like 'item:Name'
         });
         console.log("Vector Index created.");
     } catch (e) {
         if (e.message === 'Index already exists') {
-            // console.log("Index exists."); 
+            // console.log("Index exists.");
         } else {
             console.error("Index creation error:", e);
         }
     }
 
-    // Check Index Info
+    // 2. Check Data Count (Fixed logic for node-redis v4)
     try {
         const info = await redisClient.ft.info(INDEX_NAME);
-        // Find number of docs in the raw info array
-        const docCountIdx = info.indexOf('num_docs');
-        const docCount = info[docCountIdx + 1];
+        
+        // Handle both Object (newer redis) and Array (older redis) responses
+        let docCount = 0;
+        if (Array.isArray(info)) {
+            const idx = info.indexOf('num_docs');
+            docCount = parseInt(info[idx + 1]);
+        } else if (info && info.num_docs) {
+            docCount = parseInt(info.num_docs);
+        }
+
         console.log(`Index Status: Contains ${docCount} documents.`);
 
-        if (docCount == 0) {
+        // Force Seed if empty
+        if (docCount === 0) {
             console.log("Index is empty! Seeding now...");
             await seedData();
         }
     } catch (err) {
-        console.error("Error checking index:", err);
+        console.error("Error checking index info:", err);
     }
 }
 
@@ -86,8 +92,9 @@ async function seedData() {
     console.log("Seeding menu data...");
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
-        // Remove spaces for key to match previous logic
+        // Ensure key matches the PREFIX 'item:' exactly
         const key = `item:${item.name.replace(/\s/g, '')}`;
+        
         await redisClient.json.set(key, '$', {
             ...item,
             embedding: Array.from(embedding)
@@ -101,28 +108,32 @@ async function searchMenu(userQuery) {
         throw new Error("AI Model is not ready yet.");
     }
 
-    // Log the vector generation
     const vector = await getEmbedding(userQuery);
-    console.log(`Search Query: "${userQuery}" | Vector Size: ${vector.length}`);
+    console.log(`Search Query: "${userQuery}"`);
 
-    // Perform Vector Search
-    const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 3 @embedding $BLOB AS score]`, {
-        PARAMS: {
-            BLOB: Buffer.from(new Float32Array(vector).buffer)
-        },
-        SORTBY: 'score',
-        DIALECT: 2,
-        RETURN: ['name', 'price', 'description', 'score']
-    });
+    try {
+        // KNN Search with return fields
+        const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
+            PARAMS: {
+                BLOB: Buffer.from(new Float32Array(vector).buffer)
+            },
+            SORTBY: 'score',
+            DIALECT: 2,
+            RETURN: ['name', 'price', 'description', 'score']
+        });
 
-    console.log(`Found ${results.total} matches.`);
-
-    return results.documents.map(doc => ({
-        name: doc.value.name,
-        price: doc.value.price,
-        description: doc.value.description,
-        score: doc.value.score
-    }));
+        console.log(`Found ${results.total} matches.`);
+        
+        return results.documents.map(doc => ({
+            name: doc.value.name,
+            price: doc.value.price,
+            description: doc.value.description,
+            score: doc.value.score
+        }));
+    } catch (err) {
+        console.error("Search Error:", err);
+        return [];
+    }
 }
 
 module.exports = { initChatbot, searchMenu };
