@@ -78,27 +78,37 @@ async function seedData() {
 async function searchMenu(userQuery) {
     if (!embedder) throw new Error("AI Model not ready");
 
-    const vectorRaw = await getEmbedding(userQuery);
-    console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`);
-
-    const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
+    const vector = await getEmbedding(userQuery);
+    // Ensure it is a Float32 Buffer
+    const vectorBlob = Buffer.from(new Float32Array(vector).buffer);
 
     try {
-        // Updated Search Query for FLAT algorithm
-        const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
-            PARAMS: { BLOB: vectorBlob },
-            SORTBY: 'score',
-            DIALECT: 2,
-            RETURN: ['name', 'price', 'description', 'score']
-        });
+        // Use the raw command structure which is often more reliable
+        const results = await redisClient.sendCommand([
+            'FT.SEARCH', INDEX_NAME,
+            `*=>[KNN 5 @embedding $BLOB AS score]`,
+            'PARAMS', '2', 'BLOB', vectorBlob,
+            'SORTBY', 'score',
+            'DIALECT', '2',
+            'RETURN', '3', 'name', 'price', 'description'
+        ]);
 
-        console.log(`Found ${results.total} matches.`);
-        return results.documents.map(doc => ({
-            name: doc.value.name,
-            price: doc.value.price,
-            description: doc.value.description,
-            score: doc.value.score
-        }));
+        // Parse raw response (it comes as an array [count, key, [fields...], key, [fields...]])
+        const count = results[0];
+        console.log(`Found ${count} matches.`);
+        
+        const docs = [];
+        for (let i = 1; i < results.length; i += 2) {
+            const fields = results[i + 1];
+            // Convert array of fields ['name', 'Siomai', 'price', '285'] to object
+            const doc = {};
+            for (let j = 0; j < fields.length; j += 2) {
+                doc[fields[j]] = fields[j + 1];
+            }
+            docs.push(doc);
+        }
+        return docs;
+
     } catch (err) {
         console.error("Search Error:", err);
         return [];
