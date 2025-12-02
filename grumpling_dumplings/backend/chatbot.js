@@ -7,68 +7,73 @@ let redisClient;
 let embedder;
 
 async function initChatbot() {
+    // 1. Connect to Redis
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err) => console.error('Redis Client Error', err));
     await redisClient.connect();
 
+    // 2. Load AI Model
     console.log("Loading AI library...");
     const { pipeline, env } = await import('@xenova/transformers');
     
-    // Force cache to /tmp
+    // Fix permissions
     env.cacheDir = '/tmp/transformers_cache';
     env.allowLocalModels = false;
-    
+    console.log("AI Cache Directory set to:", env.cacheDir);
+
     console.log("Loading AI model...");
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // 1. Create Index (Idempotent)
+    // 3. Create Index (Use FLAT algorithm for accuracy on small data)
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT for small datasets (More accurate than HNSW)
+                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
             }
         }, {
             ON: 'JSON',
-            PREFIX: 'item:' // Ensure this matches keys like 'item:Name'
+            PREFIX: 'item:'
         });
         console.log("Vector Index created.");
     } catch (e) {
         if (e.message === 'Index already exists') {
-            // console.log("Index exists.");
+            // console.log("Index exists");
         } else {
             console.error("Index creation error:", e);
         }
     }
 
-    // 2. Check Data Count (Fixed logic for node-redis v4)
+    // 4. Check & Seed Data (Fixed for Node-Redis v4+)
     try {
         const info = await redisClient.ft.info(INDEX_NAME);
         
-        // Handle both Object (newer redis) and Array (older redis) responses
+        // Handle different response types from Redis
         let docCount = 0;
-        if (Array.isArray(info)) {
-            const idx = info.indexOf('num_docs');
-            docCount = parseInt(info[idx + 1]);
-        } else if (info && info.num_docs) {
-            docCount = parseInt(info.num_docs);
+        if (typeof info === 'object' && info.num_docs) {
+             docCount = parseInt(info.num_docs);
+        } else if (Array.isArray(info)) {
+             // Fallback for older Redis versions
+             const idx = info.indexOf('num_docs');
+             if (idx > -1) docCount = parseInt(info[idx + 1]);
         }
 
         console.log(`Index Status: Contains ${docCount} documents.`);
 
-        // Force Seed if empty
-        if (docCount === 0) {
+        if (docCount == 0) {
             console.log("Index is empty! Seeding now...");
             await seedData();
         }
     } catch (err) {
         console.error("Error checking index info:", err);
+        // Fallback: If check fails, try seeding anyway to be safe
+        await seedData(); 
     }
 }
 
@@ -92,7 +97,6 @@ async function seedData() {
     console.log("Seeding menu data...");
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
-        // Ensure key matches the PREFIX 'item:' exactly
         const key = `item:${item.name.replace(/\s/g, '')}`;
         
         await redisClient.json.set(key, '$', {
@@ -112,7 +116,7 @@ async function searchMenu(userQuery) {
     console.log(`Search Query: "${userQuery}"`);
 
     try {
-        // KNN Search with return fields
+        // KNN Search
         const results = await redisClient.ft.search(INDEX_NAME, `*=>[KNN 5 @embedding $BLOB AS score]`, {
             PARAMS: {
                 BLOB: Buffer.from(new Float32Array(vector).buffer)
