@@ -20,18 +20,18 @@ async function initChatbot() {
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // FLUSH DB to ensure clean slate for this test
-    console.log("⚠️ FLUSHING DB...");
+    // --- RESET DATABASE (To fix broken index) ---
+    console.log("⚠️ FLUSHING REDIS DB...");
     await redisClient.flushDb();
 
-    // Create Index using FLAT algorithm (Best for small datasets)
+    // --- CREATE INDEX (FLOAT32 - Standard) ---
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT, // Changed to FLAT
+                ALGORITHM: VectorAlgorithms.FLAT, // Accurate for small data
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -40,9 +40,13 @@ async function initChatbot() {
             ON: 'JSON',
             PREFIX: 'item:'
         });
-        console.log("Vector Index created.");
+        console.log("✅ Vector Index created successfully.");
     } catch (e) {
-        if (e.message !== 'Index already exists') console.error(e);
+        if (e.message === 'Index already exists') {
+            console.log("Index exists.");
+        } else {
+            console.error("❌ CRITICAL: Index Creation Failed:", e);
+        }
     }
 
     await seedData();
@@ -50,7 +54,6 @@ async function initChatbot() {
 
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    // Convert directly to standard Array
     return Array.from(response.data).map(Number);
 }
 
@@ -72,40 +75,46 @@ async function seedData() {
         const key = `item:${item.name.replace(/\s/g, '')}`;
         await redisClient.json.set(key, '$', { ...item, embedding });
     }
-    console.log("Menu data seeded! (8 items)");
+    console.log(`Menu data seeded! (${menuItems.length} items)`);
 }
 
 async function searchMenu(userQuery) {
     if (!embedder) throw new Error("AI Model not ready");
 
-    const vector = await getEmbedding(userQuery);
-    // Ensure it is a Float32 Buffer
-    const vectorBlob = Buffer.from(new Float32Array(vector).buffer);
+    const vectorRaw = await getEmbedding(userQuery);
+    // Convert to Float32 Buffer (Required for FLOAT32 Index)
+    const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
+
+    console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`);
 
     try {
-        // Use the raw command structure which is often more reliable
+        // Raw Command with FLOAT32 Blob
         const results = await redisClient.sendCommand([
             'FT.SEARCH', INDEX_NAME,
-            `*=>[KNN 5 @embedding $BLOB AS score]`,
-            'PARAMS', '2', 'BLOB', vectorBlob,
+            `*=>[KNN 5 @embedding $vec AS score]`,
+            'PARAMS', '2', 'vec', vectorBlob,
             'SORTBY', 'score',
             'DIALECT', '2',
             'RETURN', '3', 'name', 'price', 'description'
         ]);
 
-        // Parse raw response (it comes as an array [count, key, [fields...], key, [fields...]])
-        const count = results[0];
+        // Parse Raw Response (Array format)
+        const count = results[0]; // First item is total count
         console.log(`Found ${count} matches.`);
         
         const docs = [];
+        // Loop starts at 1, skipping keys and grabbing fields
         for (let i = 1; i < results.length; i += 2) {
+            const key = results[i];
             const fields = results[i + 1];
-            // Convert array of fields ['name', 'Siomai', 'price', '285'] to object
-            const doc = {};
-            for (let j = 0; j < fields.length; j += 2) {
-                doc[fields[j]] = fields[j + 1];
+            
+            if (Array.isArray(fields)) {
+                const doc = {};
+                for (let j = 0; j < fields.length; j += 2) {
+                    doc[fields[j]] = fields[j + 1];
+                }
+                docs.push(doc);
             }
-            docs.push(doc);
         }
         return docs;
 
