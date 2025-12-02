@@ -23,6 +23,7 @@ async function initChatbot() {
     console.log("⚠️ FLUSHING REDIS DB...");
     await redisClient.flushDb();
 
+    // 1. Create Index (Expect FLOAT32)
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
@@ -38,7 +39,7 @@ async function initChatbot() {
             ON: 'JSON',
             PREFIX: 'item:'
         });
-        console.log("✅ Vector Index created successfully.");
+        console.log("✅ Vector Index created.");
     } catch (e) {
         if (e.message !== 'Index already exists') console.error(e);
     }
@@ -48,8 +49,8 @@ async function initChatbot() {
 
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    // Force standard array of numbers
-    return Array.from(response.data).map(n => Number(n));
+    // Keep as Float32Array (Don't convert to standard JS Array yet)
+    return response.data; 
 }
 
 async function seedData() {
@@ -66,41 +67,45 @@ async function seedData() {
 
     console.log("Seeding menu data...");
     for (const item of menuItems) {
-        const embedding = await getEmbedding(`${item.name} ${item.description}`);
+        const embeddingRaw = await getEmbedding(`${item.name} ${item.description}`);
+        
+        // CRITICAL CHANGE: Convert Float32Array to standard Array for JSON
+        // We ensure it is a flat array of numbers.
+        const embeddingArray = Array.from(embeddingRaw);
+
         const key = `item:${item.name.replace(/\s/g, '')}`;
         
-        // Ensure embedding is saved as a plain JSON array
+        // Save using json.set
         await redisClient.json.set(key, '$', {
             name: item.name,
             price: item.price,
             description: item.description,
-            embedding: embedding
+            embedding: embeddingArray
         });
     }
-    console.log(`Menu data seeded! (${menuItems.length} items)`);
+    console.log("Menu data seeded! (8 items)");
 }
 
 async function searchMenu(userQuery) {
     if (!embedder) throw new Error("AI Model not ready");
 
     const vectorRaw = await getEmbedding(userQuery);
-    // Standard FLOAT32 Buffer
-    const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
-
     console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`);
 
+    // Create a Float32 Buffer for the query blob
+    const vectorBlob = Buffer.from(vectorRaw.buffer);
+
     try {
-        // Use raw command, simpler syntax
+        // Use raw command
         const results = await redisClient.sendCommand([
             'FT.SEARCH', INDEX_NAME,
-            `*=>[KNN 3 @embedding $vec AS score]`,
+            `*=>[KNN 5 @embedding $vec AS score]`,
             'PARAMS', '2', 'vec', vectorBlob,
             'SORTBY', 'score',
             'DIALECT', '2',
             'RETURN', '3', 'name', 'price', 'description'
         ]);
 
-        // Parse result manually
         const count = results[0];
         console.log(`Found ${count} matches.`);
         
