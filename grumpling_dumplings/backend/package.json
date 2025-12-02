@@ -7,6 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.17.0",
     "@xenova/transformers": "^2.14.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
