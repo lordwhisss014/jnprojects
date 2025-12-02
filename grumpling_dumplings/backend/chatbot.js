@@ -20,18 +20,16 @@ async function initChatbot() {
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log("AI Model loaded.");
 
-    // --- RESET DATABASE (To fix broken index) ---
     console.log("⚠️ FLUSHING REDIS DB...");
     await redisClient.flushDb();
 
-    // --- CREATE INDEX (FLOAT32 - Standard) ---
     try {
         await redisClient.ft.create(INDEX_NAME, {
             '$.name': { type: SchemaFieldTypes.TEXT, AS: 'name' },
             '$.description': { type: SchemaFieldTypes.TEXT, AS: 'description' },
             '$.embedding': {
                 type: SchemaFieldTypes.VECTOR,
-                ALGORITHM: VectorAlgorithms.FLAT, // Accurate for small data
+                ALGORITHM: VectorAlgorithms.FLAT,
                 TYPE: 'FLOAT32',
                 DIM: 384, 
                 DISTANCE_METRIC: 'COSINE'
@@ -42,11 +40,7 @@ async function initChatbot() {
         });
         console.log("✅ Vector Index created successfully.");
     } catch (e) {
-        if (e.message === 'Index already exists') {
-            console.log("Index exists.");
-        } else {
-            console.error("❌ CRITICAL: Index Creation Failed:", e);
-        }
+        if (e.message !== 'Index already exists') console.error(e);
     }
 
     await seedData();
@@ -54,7 +48,8 @@ async function initChatbot() {
 
 async function getEmbedding(text) {
     const response = await embedder(text, { pooling: 'mean', normalize: true });
-    return Array.from(response.data).map(Number);
+    // Force standard array of numbers
+    return Array.from(response.data).map(n => Number(n));
 }
 
 async function seedData() {
@@ -73,7 +68,14 @@ async function seedData() {
     for (const item of menuItems) {
         const embedding = await getEmbedding(`${item.name} ${item.description}`);
         const key = `item:${item.name.replace(/\s/g, '')}`;
-        await redisClient.json.set(key, '$', { ...item, embedding });
+        
+        // Ensure embedding is saved as a plain JSON array
+        await redisClient.json.set(key, '$', {
+            name: item.name,
+            price: item.price,
+            description: item.description,
+            embedding: embedding
+        });
     }
     console.log(`Menu data seeded! (${menuItems.length} items)`);
 }
@@ -82,32 +84,29 @@ async function searchMenu(userQuery) {
     if (!embedder) throw new Error("AI Model not ready");
 
     const vectorRaw = await getEmbedding(userQuery);
-    // Convert to Float32 Buffer (Required for FLOAT32 Index)
+    // Standard FLOAT32 Buffer
     const vectorBlob = Buffer.from(new Float32Array(vectorRaw).buffer);
 
     console.log(`Query: "${userQuery}" | Dim: ${vectorRaw.length}`);
 
     try {
-        // Raw Command with FLOAT32 Blob
+        // Use raw command, simpler syntax
         const results = await redisClient.sendCommand([
             'FT.SEARCH', INDEX_NAME,
-            `*=>[KNN 5 @embedding $vec AS score]`,
+            `*=>[KNN 3 @embedding $vec AS score]`,
             'PARAMS', '2', 'vec', vectorBlob,
             'SORTBY', 'score',
             'DIALECT', '2',
             'RETURN', '3', 'name', 'price', 'description'
         ]);
 
-        // Parse Raw Response (Array format)
-        const count = results[0]; // First item is total count
+        // Parse result manually
+        const count = results[0];
         console.log(`Found ${count} matches.`);
         
         const docs = [];
-        // Loop starts at 1, skipping keys and grabbing fields
         for (let i = 1; i < results.length; i += 2) {
-            const key = results[i];
             const fields = results[i + 1];
-            
             if (Array.isArray(fields)) {
                 const doc = {};
                 for (let j = 0; j < fields.length; j += 2) {
