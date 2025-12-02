@@ -24,9 +24,8 @@ spec:
       # This serves HTML and proxies /api to localhost:3000
       # -----------------------------------------------------
       - name: frontend
-        # UPDATE THIS: This image must be built from your 'frontend/' folder
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-frontend:latest
-        imagePullPolicy: Always # Ensures we always get the latest build
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           protocol: TCP
@@ -57,12 +56,11 @@ spec:
 
       # -----------------------------------------------------
       # CONTAINER 2: BACKEND (Node.js + AI Chatbot)
-      # This handles API, Database, Redis, and AI Logic
+      # Handles API, Database, Redis, Elastic, and AI Logic
       # -----------------------------------------------------
       - name: backend
-        # UPDATE THIS: This image must be built from your 'backend/' folder
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-backend:latest
-        imagePullPolicy: Always # Ensures we always get the latest build
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
           protocol: TCP
@@ -93,18 +91,21 @@ spec:
         - name: JWT_SECRET
           value: "replace_this_with_a_secure_random_string"
 
-        # --- CHATBOT & REDIS CONFIG (NEW) ---
+        # --- CHATBOT & REDIS CONFIG ---
         - name: REDIS_URL
           value: "redis://redis-stack:6379"
-        # Fixes 'Permission Denied' when AI tries to download models
         - name: XDG_CACHE_HOME
           value: "/tmp"
 
-        # --- RESOURCES (INCREASED FOR AI MODEL) ---
+        # --- ELASTICSEARCH CONFIG (NEW) ---
+        - name: ELASTIC_URL
+          value: "http://elasticsearch:9200"
+
+        # --- RESOURCES ---
         resources:
           limits:
-            cpu: 500m        # 500m for AI processing
-            memory: 1Gi     # 1GB RAM to load the model
+            cpu: "1"        # 1 Full Core for AI
+            memory: 1Gi     # 1GB RAM for AI Model
           requests:
             cpu: 500m
             memory: 512Mi
@@ -116,7 +117,7 @@ spec:
             drop: ["ALL"]
 
 ---
-# SERVICE (No changes needed, points to Frontend port 8080)
+# SERVICE (No changes needed)
 apiVersion: v1
 kind: Service
 metadata:
