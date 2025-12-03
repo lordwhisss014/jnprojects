@@ -65,8 +65,8 @@ spec:
         env:
         - name: PORT
           value: "3000"
-        - name: DB_HOST        #Replace this with actual postgresql server
-          value: "postgresql" 
+        - name: DB_HOST        
+          value: "postgresql" #Replace this with actual postgresql server
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
@@ -125,8 +125,7 @@ spec:
         # Metricbeat usually needs user 0 (root) to read /proc for system stats
         # If OpenShift blocks this, we can try running as arbitrary user, 
         # but system metrics might be limited.
-        securityContext:
-          runAsUser: 0 
+        # REMOVED runAsUser: 0 to fix OpenShift security constraint error.
         volumeMounts:
         - name: metricbeat-config
           mountPath: /etc/metricbeat.yml
