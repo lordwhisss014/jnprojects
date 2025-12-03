@@ -1,93 +1,266 @@
-# jn-projects
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grumbling Dumpling - Project Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #ffffff;
+        }
+        h1, h2, h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; margin-top: 40px;}
+        h3 { font-size: 1.25em; }
+        p { margin-top: 0; margin-bottom: 16px; }
+        code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        ul { padding-left: 2em; margin-bottom: 16px; }
+        li { margin-bottom: 5px; }
+        table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        table th, table td {
+            padding: 6px 13px;
+            border: 1px solid #dfe2e5;
+        }
+        table tr:nth-child(2n) { background-color: #f6f8fa; }
+        .badges { margin-bottom: 20px; }
+        .badges img { margin-right: 5px; }
+        hr {
+            height: 0.25em;
+            padding: 0;
+            margin: 24px 0;
+            background-color: #e1e4e8;
+            border: 0;
+        }
+        .architecture-img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
 
+    <h1>🥟 Grumbling Dumpling: AI-Powered Full-Stack App on OpenShift</h1>
 
+    <div class="badges">
+        <img src="https://img.shields.io/badge/Status-Production%20Ready-success" alt="Status">
+        <img src="https://img.shields.io/badge/Platform-OpenShift-red" alt="OpenShift">
+        <img src="https://img.shields.io/badge/Backend-Node.js%2018-green" alt="Node.js">
+        <img src="https://img.shields.io/badge/AI-Redis%20Vector%20Search-red" alt="Redis">
+    </div>
 
-## Getting started
+    <p><strong>Grumbling Dumpling</strong> is a cloud-native e-commerce application deployed on <strong>Red Hat OpenShift</strong>. It features a modern microservices architecture, a secure Node.js backend, an Nginx frontend, and an integrated <strong>AI Chatbot</strong> powered by Vector Search.</p>
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+    <hr>
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+    <h2>🏗️ Architecture Overview</h2>
+    <p>The application follows a <strong>Multi-Container Pod (Sidecar)</strong> pattern for the main application logic, connected to external stateful services.</p>
 
-## Add your files
+    <div class="architecture-img">
+        
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+[Image of OpenShift architecture diagram]
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/itg-gitlab/jn-projects.git
-git branch -M main
-git push -uf origin main
-```
+    </div>
 
-## Integrate with your tools
+    <h3>1. The Application Pod (3 Containers)</h3>
+    <ul>
+        <li><strong>Frontend (Nginx):</strong> Serves the static HTML/CSS/JS and reverse-proxies API requests to the backend. It also exposes a <code>/status</code> page for monitoring.</li>
+        <li><strong>Backend (Node.js):</strong> Handles API logic, connects to databases, and runs the local AI model (<code>Xenova/all-MiniLM-L6-v2</code>) for vector embeddings.</li>
+        <li><strong>Metricbeat (Sidecar):</strong> A lightweight shipper that monitors the Nginx status and System (CPU/RAM) usage and pushes metrics to Elasticsearch.</li>
+    </ul>
 
-- [ ] [Set up project integrations](https://gitlab.com/itg-gitlab/jn-projects/-/settings/integrations)
+    <h3>2. Data Services</h3>
+    <ul>
+        <li><strong>PostgreSQL:</strong> Primary relational database for User Accounts and Order History.</li>
+        <li><strong>Redis Stack:</strong> Vector Database used to store menu embeddings and perform Semantic Search for the chatbot.</li>
+        <li><strong>Elasticsearch & Kibana (ELK):</strong> Centralized logging and analytics platform to visualize Sales Data and Server Health.</li>
+    </ul>
 
-## Collaborate with your team
+    <hr>
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+    <h2>🚀 Features</h2>
+    <ul>
+        <li><strong>🛒 E-commerce:</strong> Browse menu, add to cart, and secure checkout.</li>
+        <li><strong>🤖 AI Assistant:</strong> Ask questions like <em>"Do you have anything vegetarian?"</em> or <em>"I want something with shrimp"</em>. The bot understands context using <strong>Vector Search</strong> (Redis KNN).</li>
+        <li><strong>🔐 Authentication:</strong> User registration and login with JWT and bcrypt hashing.</li>
+        <li><strong>📊 Analytics:</strong> Real-time Kibana dashboards showing Top Customers, Total Revenue, and System Health.</li>
+        <li><strong>🛡️ Security:</strong> Non-root container compliance for OpenShift (restricted-v2 SCC).</li>
+    </ul>
 
-## Test and Deploy
+    <hr>
 
-Use the built-in continuous integration in GitLab.
+    <h2>🛠️ Prerequisites</h2>
+    <ul>
+        <li><strong>OpenShift Cluster</strong> (4.x)</li>
+        <li><strong>OC CLI</strong> installed and logged in.</li>
+        <li><strong>GitLab Repository</strong> (hosting the source code).</li>
+    </ul>
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+    <hr>
 
-***
+    <h2>📦 Deployment Guide</h2>
 
-# Editing this README
+    <h3>1. Database & Redis Setup</h3>
+    <p>Deploy the stateful services first using the provided YAML files.</p>
+    <pre><code># Deploy Redis Stack (Vector Database) with GUI
+oc apply -f redis-stack-gui.yaml
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+# Deploy ELK Stack (Elasticsearch + Kibana)
+oc apply -f elk-stack.yaml
 
-## Suggestions for a good README
+# Deploy PostgreSQL (Using ephemeral or persistent template)
+oc new-app postgresql-persistent \
+    -p POSTGRESQL_USER=dumplinguser \
+    -p POSTGRESQL_PASSWORD=mysecurepassword \
+    -p POSTGRESQL_DATABASE=dumplingdb</code></pre>
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+    <h3>2. Secret Management</h3>
+    <p>Create the necessary secrets for Git pulling and Database connections.</p>
+    <pre><code># Create Database Credentials Secret
+oc create secret generic postgresql \
+    --from-literal=database-user=dumplinguser \
+    --from-literal=database-password=mysecurepassword \
+    --from-literal=database-name=dumplingdb
 
-## Name
-Choose a self-explaining name for your project.
+# Link GitLab Secret for Builds
+oc secrets link builder gitlab --for=pull
+oc secrets link default gitlab --for=pull</code></pre>
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+    <h3>3. Application Build</h3>
+    <p>Create the BuildConfigs to build the Frontend and Backend images from source.</p>
+    <pre><code># Create ImageStreams and Build Configs
+oc apply -f build.yaml
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# Start the builds manually to populate images
+oc start-build build-frontend
+oc start-build build-backend</code></pre>
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+    <h3>4. Application Deployment</h3>
+    <p>Deploy the main application pod.</p>
+    <pre><code># Create ConfigMap for Metricbeat
+oc apply -f metricbeat-config.yaml
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+# Deploy the Main Application
+oc apply -f deployment.yaml</code></pre>
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+    <hr>
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+    <h2>⚙️ Configuration Details</h2>
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+    <h3>Backend (<code>server.js</code>)</h3>
+    <ul>
+        <li><strong>IPv4 Binding:</strong> Forced server to listen on <code>0.0.0.0</code> to ensure Nginx can reach it via <code>localhost</code>.</li>
+        <li><strong>AI Model:</strong> Uses <code>@xenova/transformers</code>. Cache directory is forced to <code>/tmp</code> to avoid Read-Only file system errors in OpenShift.</li>
+        <li><strong>Redis Indexing:</strong> Uses <strong>FLAT</strong> algorithm and <strong>HSET</strong> (Hashes) instead of JSON for reliable vector indexing on small datasets.</li>
+    </ul>
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+    <h3>Frontend (<code>nginx.conf</code>)</h3>
+    <ul>
+        <li><strong>Reverse Proxy:</strong> Proxies <code>/api</code> traffic to <code>http://localhost:3000</code>.</li>
+        <li><strong>Observability:</strong> Exposes <code>/status</code> endpoint (allow 127.0.0.1 only) for Metricbeat.</li>
+    </ul>
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+    <h3>Observability (<code>metricbeat.yml</code>)</h3>
+    <ul>
+        <li><strong>Modules:</strong> Enabled <code>system</code> (CPU/Memory) and <code>nginx</code> (Active Connections).</li>
+        <li><strong>Permissions:</strong> Run with <code>--strict.perms=false</code> to bypass OpenShift config ownership checks.</li>
+    </ul>
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+    <hr>
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+    <h2>🔍 Troubleshooting & Lessons Learned</h2>
+    <p>During the deployment, several critical OpenShift-specific challenges were solved:</p>
 
-## License
-For open source projects, say how it is licensed.
+    <table>
+        <thead>
+            <tr>
+                <th>Issue</th>
+                <th>Cause</th>
+                <th>Solution</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>"Connection Refused" (502)</strong></td>
+                <td>Node.js defaulted to IPv6 (<code>::1</code>) while Nginx tried IPv4.</td>
+                <td>Updated <code>server.js</code> to listen on <code>0.0.0.0</code> and Nginx to proxy to <code>localhost</code>.</td>
+            </tr>
+            <tr>
+                <td><strong>"Permission Denied" (AI Model)</strong></td>
+                <td>AI library tried writing to <code>node_modules</code> (Read-Only).</td>
+                <td>Set <code>env.cacheDir = '/tmp/transformers_cache'</code> in code.</td>
+            </tr>
+            <tr>
+                <td><strong>"0 Matches" in Vector Search</strong></td>
+                <td>Redis JSON indexer rejected the JS Array format.</td>
+                <td>Switched to <strong>Redis Hashes (<code>HSET</code>)</strong> and raw binary Buffers for vector storage.</td>
+            </tr>
+            <tr>
+                <td><strong>"Invalid value: 0" (Metricbeat)</strong></td>
+                <td>OpenShift blocks running containers as Root.</td>
+                <td>Removed <code>runAsUser: 0</code> and relied on <code>--strict.perms=false</code> to run as random UID.</td>
+            </tr>
+            <tr>
+                <td><strong>"Missing required parameter: body"</strong></td>
+                <td>Elastic Client v7 vs v8 API mismatch.</td>
+                <td>Updated backend code to use <code>body:</code> parameter instead of <code>document:</code>.</td>
+            </tr>
+        </tbody>
+    </table>
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+    <hr>
+
+    <h2>📈 Visualizing Data</h2>
+    <ol>
+        <li><strong>Access Kibana:</strong> Run <code>oc get route kibana</code> and open the URL.</li>
+        <li><strong>Create Index Patterns:</strong>
+            <ul>
+                <li><strong>Sales Data:</strong> Create pattern <code>orders*</code> (Time field: <code>timestamp</code>).</li>
+                <li><strong>System Metrics:</strong> Create pattern <code>metricbeat-*</code> (Time field: <code>@timestamp</code>).</li>
+            </ul>
+        </li>
+        <li><strong>View Dashboard:</strong> Navigate to the "Dumpling Sales Dashboard" to see real-time revenue and system health.</li>
+    </ol>
+
+</body>
+</html>
