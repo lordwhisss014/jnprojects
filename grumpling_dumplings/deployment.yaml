@@ -21,7 +21,6 @@ spec:
       containers:
       # -----------------------------------------------------
       # CONTAINER 1: FRONTEND (Nginx)
-      # This serves HTML and proxies /api to localhost:3000
       # -----------------------------------------------------
       - name: frontend
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-frontend:latest
@@ -56,7 +55,6 @@ spec:
 
       # -----------------------------------------------------
       # CONTAINER 2: BACKEND (Node.js + AI Chatbot)
-      # Handles API, Database, Redis, Elastic, and AI Logic
       # -----------------------------------------------------
       - name: backend
         image: image-registry.openshift-image-registry.svc:5000/nicholson-adlaon-dev/jn-projects-backend:latest
@@ -67,8 +65,6 @@ spec:
         env:
         - name: PORT
           value: "3000"
-        
-        # --- DATABASE CONFIG ---
         - name: DB_HOST
           value: "postgresql" 
         - name: DB_PORT
@@ -90,31 +86,58 @@ spec:
               key: database-name
         - name: JWT_SECRET
           value: "replace_this_with_a_secure_random_string"
-
-        # --- CHATBOT & REDIS CONFIG ---
         - name: REDIS_URL
           value: "redis://redis-stack:6379"
         - name: XDG_CACHE_HOME
           value: "/tmp"
-
-        # --- ELASTICSEARCH CONFIG (NEW) ---
         - name: ELASTIC_URL
           value: "http://elasticsearch:9200"
-
-        # --- RESOURCES ---
         resources:
           limits:
-            cpu: "1"        # 1 Full Core for AI
-            memory: 1Gi     # 1GB RAM for AI Model
+            cpu: "1"
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 512Mi
-        
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
           capabilities:
             drop: ["ALL"]
+
+      # -----------------------------------------------------
+      # CONTAINER 3: METRICBEAT (Observability Sidecar)
+      # -----------------------------------------------------
+      - name: metricbeat
+        image: docker.elastic.co/beats/metricbeat:7.17.13
+        args: [
+          "-c", "/etc/metricbeat.yml", 
+          "-e", 
+          "--strict.perms=false"
+        ]
+        resources:
+          limits:
+            memory: 200Mi
+            cpu: 100m
+          requests:
+            memory: 100Mi
+            cpu: 50m
+        # Metricbeat usually needs user 0 (root) to read /proc for system stats
+        # If OpenShift blocks this, we can try running as arbitrary user, 
+        # but system metrics might be limited.
+        securityContext:
+          runAsUser: 0 
+        volumeMounts:
+        - name: metricbeat-config
+          mountPath: /etc/metricbeat.yml
+          subPath: metricbeat.yml
+          readOnly: true
+
+      # --- VOLUMES ---
+      volumes:
+      - name: metricbeat-config
+        configMap:
+          name: metricbeat-config
 
 ---
 # SERVICE (No changes needed)
