@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metricbeat-config
+data:
+  metricbeat.yml: |
+    metricbeat.config.modules:
+      path: ${path.config}/modules.d/*.yml
+      reload.enabled: false
+
+    # 1. Monitor Nginx (Connection Counts)
+    metricbeat.modules:
+    - module: nginx
+      metricsets: ["stubstatus"]
+      period: 10s
+      hosts: ["http://127.0.0.1:8080"]
+      server_status_path: "status"
+
+    # 2. Monitor System (CPU/Ram of the Pod)
+    - module: system
+      metricsets: ["cpu", "memory", "network"]
+      period: 10s
+      processes: ['.*']
+
+    # 3. Output to your Elasticsearch
+    output.elasticsearch:
+      hosts: ["http://elasticsearch:9200"]
+      # Disable security for internal dev setup
+      username: "" 
+      password: ""
+
+    setup.kibana:
+      host: "http://kibana:5601"
